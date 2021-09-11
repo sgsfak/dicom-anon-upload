@@ -18,6 +18,11 @@ public:
 private slots:
     void on_pushButton_clicked();
 
+    void on_pushButton_2_clicked();
+
+    void do_login(const QString& username, const QString& passwd);
+    void displayError(int socketError, const QString &message);
+
 private:
     Ui::MainWindow *ui;
 };

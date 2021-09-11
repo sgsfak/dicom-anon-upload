@@ -1,6 +1,6 @@
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets network
 
 CONFIG += c++11
 
@@ -16,6 +16,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    imph2mthread.cpp \
     main.cpp \
     mainwindow.cpp \
     openwall_crypt/crypt_blowfish.c \
@@ -24,6 +25,7 @@ SOURCES += \
     qtbcrypt.cpp
 
 HEADERS += \
+    imph2mthread.h \
     mainwindow.h \
     openwall_crypt/crypt.h \
     openwall_crypt/crypt_blowfish.h \
