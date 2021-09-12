@@ -7,6 +7,7 @@
 #include <QTextCodec>
 #include <QTimer>
 #include <QProgressDialog>
+#include <QtSql>
 
 #include "imph2mthread.h"
 
@@ -17,6 +18,18 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui->centralwidget->setStyleSheet("background-color: white");
     ui->statusbar->setStyleSheet("background-color: white");
+
+
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    QString dbFile = qApp->applicationDirPath()
+            + QDir::separator()
+            + "users.sqlite";
+    db.setDatabaseName( dbFile );
+    qDebug() << "Openning DB at" << dbFile;
+    if (!db.open()) {
+        QMessageBox::information(this, "Login", "Cannot open database at " + dbFile);
+    }
+
 }
 
 MainWindow::~MainWindow()
@@ -37,18 +50,40 @@ void hash_password(QWidget* w, const QString& username, const QString& passwd)
 
 }
 
+#define Q_EXEC(q) \
+    if (!q.exec()) \
+      qDebug() << __FILE__ << ":" << __LINE__ << q.lastError().text() << q.lastQuery()
+
 void MainWindow::do_login(const QString& username, const QString& passwd)
 {
     QWidget* w = this;
+
+    /*
     // Hash for password 'stelios'
     QString hash = "$2y$10$EvCPDFJaD8471NCmbR4S4O.QhBl30khbrPedZXk15skHxW7TaUYhO";
     QString hashedPassword = QtBCrypt::hashPassword(passwd, hash);
+   */
 
-    qDebug() << "Hash" << hashedPassword;
-    QMessageBox::information(w, "Login", hash == hashedPassword ? "Login successfull!" : "Wrong username or password");
+    QSqlQuery q("SELECT hash FROM users WHERE username=?");
+    q.addBindValue(username);
+    Q_EXEC(q);
+    bool success = false;
+    if (q.next()) {
+        QString hash = q.value("hash").toString();
+        QString hashedPassword = QtBCrypt::hashPassword(passwd, hash);
+        success = hash == hashedPassword;
+    }
+
+    if (success) {
+        ui->usernameLineEdit->setText("");
+        ui->passwordLineEdit->setText("");
+    }
+    QMessageBox::information(w, "Login", success ? "Login successfull!" : "Wrong username or password");
+
+
 }
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_loginButton_clicked()
 {
     auto username = ui->usernameLineEdit->text();
     auto passwd = ui->passwordLineEdit->text();
@@ -56,45 +91,7 @@ void MainWindow::on_pushButton_clicked()
     do_login(username, passwd);
 }
 
-
-namespace {
-inline void delay(int millisecondsWait)
-{
-    QEventLoop loop;
-    QTimer t;
-    t.connect(&t, &QTimer::timeout, &loop, &QEventLoop::quit);
-    t.start(millisecondsWait);
-    loop.exec();
-}
-
-QString send_command(QWidget* w, const char* command)
-{
-
-    QTcpSocket sock;
-    sock.connectToHost("127.0.0.1", 27016);
-    if (!sock.waitForConnected()) {
-        QMessageBox::critical(w, "Error", "Cannot connect to IMP H2M services...");
-        return "";
-    }
-
-    QTextCodec *codec = QTextCodec::codecForName("UTF-8");
-
-    sock.write(command);
-    QStringList sl;
-    forever {
-        sock.waitForReadyRead();
-        QByteArray ba = sock.readAll();
-        if (ba.isEmpty())
-            break;
-        QString r = codec->toUnicode(ba).simplified();
-        qDebug() << "SOCK ->" << r;
-        sl.append(r);
-
-    }
-    return sl.join("\n");
-}
-}
-void MainWindow::on_pushButton_2_clicked()
+void MainWindow::on_panaceaButton_clicked()
 {
     QProgressDialog* progress = new QProgressDialog("Camera capture", "Abort capture", 0, 0, this);
     progress->setWindowModality(Qt::WindowModal);
@@ -130,3 +127,15 @@ void MainWindow::displayError(int socketError, const QString &message)
                                  .arg(message));
     }
 }
+
+void MainWindow::on_passwordLineEdit_returnPressed()
+{
+    this->on_loginButton_clicked();
+}
+
+
+void MainWindow::on_usernameLineEdit_returnPressed()
+{
+    this->on_loginButton_clicked();
+}
+

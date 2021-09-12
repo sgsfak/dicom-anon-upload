@@ -17,7 +17,7 @@
    <bool>true</bool>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="loginButton">
     <property name="geometry">
      <rect>
       <x>250</x>
@@ -58,7 +58,7 @@
       <x>180</x>
       <y>300</y>
       <width>191</width>
-      <height>52</height>
+      <height>58</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout">
@@ -115,7 +115,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_2">
+   <widget class="QPushButton" name="panaceaButton">
     <property name="geometry">
      <rect>
       <x>410</x>
@@ -148,7 +148,7 @@
      <x>0</x>
      <y>0</y>
      <width>695</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
@@ -158,6 +158,12 @@
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>usernameLineEdit</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
+  <tabstop>loginButton</tabstop>
+  <tabstop>panaceaButton</tabstop>
+ </tabstops>
  <resources>
   <include location="resources.qrc"/>
  </resources>
