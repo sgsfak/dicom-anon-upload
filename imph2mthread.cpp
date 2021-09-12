@@ -92,13 +92,14 @@ void ImpH2MThread::run()
 
     bool success = false;
     response = send_command("Matching result");
+    const int max_delay_secs = 2;
     for (uint i = 1; i < 10 && !this->is_stopped(); ++i) {
         if (response != "0") {
             qDebug() << "Got" << response;
             success = true;
             break;
         }
-        QThread::sleep(5 < i ? 5 : i);
+        QThread::sleep(max_delay_secs < i ? max_delay_secs : i);
         if (this->is_stopped())
             break;
         response = send_command("Matching result");

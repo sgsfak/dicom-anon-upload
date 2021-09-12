@@ -16,12 +16,16 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_pushButton_clicked();
+    void on_loginButton_clicked();
 
-    void on_pushButton_2_clicked();
+    void on_panaceaButton_clicked();
 
     void do_login(const QString& username, const QString& passwd);
     void displayError(int socketError, const QString &message);
+
+    void on_passwordLineEdit_returnPressed();
+
+    void on_usernameLineEdit_returnPressed();
 
 private:
     Ui::MainWindow *ui;
