@@ -83,7 +83,7 @@ QString ImpH2MThread::send_command(const char* command, bool waitReply)
 void ImpH2MThread::run()
 {
     QString response = send_command("Launch capture");
-    if (this->is_stopped())
+    if (this->is_stopped() || response == "")
         return;
     if (response != "command received") {
         emit error(QAbstractSocket::SocketError::OperationError, "Error response from IMP H2M service! No selfie in the mobile?");
