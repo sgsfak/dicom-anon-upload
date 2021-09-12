@@ -21,12 +21,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    QString dbFile = qApp->applicationDirPath()
-            + QDir::separator()
-            + "users.sqlite";
+    QString dbFile = qApp->applicationDirPath() + "/users.sqlite";
     db.setDatabaseName( dbFile );
-    qDebug() << "Openning DB at" << dbFile;
-    if (!db.open()) {
+    qDebug() << "Opening DB at" << dbFile;
+    if (!QFileInfo::exists(dbFile) || !db.open()) {
         QMessageBox::information(this, "Login", "Cannot open database at " + dbFile);
     }
 
@@ -64,12 +62,13 @@ void MainWindow::do_login(const QString& username, const QString& passwd)
     QString hashedPassword = QtBCrypt::hashPassword(passwd, hash);
    */
 
-    QSqlQuery q("SELECT hash FROM users WHERE username=?");
+    QSqlQuery q;
+    q.prepare("SELECT hash FROM users WHERE username=?");
     q.addBindValue(username);
     Q_EXEC(q);
     bool success = false;
     if (q.next()) {
-        QString hash = q.value("hash").toString();
+        QString hash = q.value(0).toString();
         QString hashedPassword = QtBCrypt::hashPassword(passwd, hash);
         success = hash == hashedPassword;
     }
