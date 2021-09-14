@@ -73,12 +73,13 @@ void MainWindow::do_login(const QString& username, const QString& passwd)
         success = hash == hashedPassword;
     }
 
+    QMessageBox::information(w, "Login", success ? QString("Welcome %1!").arg(username) : "Wrong username or password");
+
     if (success) {
         ui->usernameLineEdit->setText("");
         ui->passwordLineEdit->setText("");
+        QTimer::singleShot(0, ui->usernameLabel, SLOT(setFocus()));
     }
-    QMessageBox::information(w, "Login", success ? "Login successfull!" : "Wrong username or password");
-
 
 }
 
