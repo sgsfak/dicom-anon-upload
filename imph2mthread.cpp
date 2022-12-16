@@ -3,7 +3,7 @@
 #include <QTextStream>
 #include <QTextCodec>
 
-ImpH2MThread::ImpH2MThread(QObject *parent) : QThread(parent), hostName("127.0.0.1"), port(27016), quit(false)
+ImpH2MThread::ImpH2MThread(QObject *parent) : QThread(parent), hostName("139.91.190.228"), port(27017), quit(false)
 {
 }
 ImpH2MThread::~ImpH2MThread()
@@ -62,12 +62,12 @@ QString ImpH2MThread::send_command(const char* command, bool waitReply)
     QStringList sl;
     char buf[1024];
     forever {
-        qint64 lineLength = sock.readLine(buf, sizeof(buf));
+        qint64 lineLength = sock.read(buf, sizeof(buf));
 
         if (lineLength == -1) {
             break;
         }
-        QString r = codec->toUnicode(buf).simplified();
+        QString r = codec->toUnicode(buf);//.simplified();
         qDebug() << "SOCK ->" << buf  << "Simplified" << r;
         sl.append(r);
         if (!sock.waitForReadyRead()) {
@@ -82,6 +82,7 @@ QString ImpH2MThread::send_command(const char* command, bool waitReply)
 
 void ImpH2MThread::run()
 {
+#if 0
     QString response = send_command("Launch capture");
     if (this->is_stopped() || response == "")
         return;
@@ -108,7 +109,12 @@ void ImpH2MThread::run()
 
     if (this->is_stopped())
         return;
-
+#else
+    QString data = send_command("Launch capture", true);
+    bool success = true;
+    QString response = data.mid(1, data.length()-3);
+    qDebug().noquote() << "Response: " << response;
+#endif
     QStringList sl = response.split("\n");
     if (success && sl.length()>1)
         emit credentials(sl.at(0), sl.at(1));

@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>ics_logo.png</file>
         <file>panacea.png</file>
+        <file>cardiocare-logo2.png</file>
+        <file>cardiocare-logo.ico</file>
     </qresource>
 </RCC>

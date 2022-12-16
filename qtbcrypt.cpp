@@ -11,7 +11,7 @@
 
 
 #include "qtbcrypt.h"
-
+#include <QRandomGenerator>
 
 
 #include "qtbcrypt.h"
@@ -31,7 +31,7 @@ QString QtBCrypt::generateSalt()
     char randomBytes[randomBytesSize];
     QtBCrypt::generateRandomBytes(randomBytes, randomBytesSize);
 
-    int iterationCount = 12;
+    ulong iterationCount = 12;
 
     const char* bcryptPrefix = "$2a$";
 
@@ -55,8 +55,8 @@ QString QtBCrypt::hashPassword(const QString& password, const QString& salt)
 
 void QtBCrypt::generateRandomBytes(char* outBuffer, int bufferSize)
 {
-    srand(time(0x00));
+    srand(static_cast<uint>(time(nullptr)));
     for ( int i = 0 ; i < bufferSize ; ++i ) {
-        outBuffer[i] = rand() % 256;
+        outBuffer[i] = QRandomGenerator::global()->bounded(0,256);
     }
 }

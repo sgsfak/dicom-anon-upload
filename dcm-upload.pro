@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     imph2mthread.cpp \
+    loginwindow.cpp \
     main.cpp \
     mainwindow.cpp \
     openwall_crypt/crypt_blowfish.c \
@@ -26,15 +27,18 @@ SOURCES += \
 
 HEADERS += \
     imph2mthread.h \
+    loginwindow.h \
     mainwindow.h \
     openwall_crypt/crypt.h \
     openwall_crypt/crypt_blowfish.h \
     openwall_crypt/crypt_gensalt.h \
     openwall_crypt/ow-crypt.h \
     openwall_crypt/x86.S \
-    qtbcrypt.h
+    qtbcrypt.h \
+    token_data.h
 
 FORMS += \
+    loginwindow.ui \
     mainwindow.ui
 
 # Default rules for deployment.
@@ -46,3 +50,6 @@ DISTFILES +=
 
 RESOURCES += \
     resources.qrc
+
+RC_ICONS = cardiocare-logo.ico
+ICON = cardiocare-logo.icns

@@ -3,31 +3,32 @@
 
 #include <QMainWindow>
 
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
+#include "token_data.h"
+
+namespace Ui {
+class MainWindow;
+}
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
-private slots:
-    void on_loginButton_clicked();
 
-    void on_panaceaButton_clicked();
+protected:
+    void dropEvent(QDropEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void anonymize(const QString& folder);
 
-    void do_login(const QString& username, const QString& passwd);
-    void displayError(int socketError, const QString &message);
-
-    void on_passwordLineEdit_returnPressed();
-
-    void on_usernameLineEdit_returnPressed();
+public slots:
+    void on_tokens(const token_data& t);
 
 private:
     Ui::MainWindow *ui;
+    token_data tokens;
 };
+
 #endif // MAINWINDOW_H
