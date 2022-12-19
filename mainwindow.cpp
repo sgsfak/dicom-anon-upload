@@ -18,6 +18,9 @@
 
 #include "worker.h"
 
+#define _STR(X) #X
+#define STR(X) _STR(X)
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -31,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::on_tokens(const token_data& tokens) {
     this->tokens = tokens;
     QLabel *label = new QLabel(this);
-    label->setText(tokens.access_token);
+    label->setText("Git rev:" STR(APP_REVISION));
     this->statusBar()->addWidget(label);
     this->show();
 }
@@ -64,9 +67,9 @@ void MainWindow::dropEvent(QDropEvent *event)
 
     if (dlg.exec() == QDialog::Accepted) {
         QString patId = d.patientIDLineEdit->text();
-        QString label = d.labelLineEdit->text();
-        QTimer::singleShot(100, this, [this, fileName, patId, label]() {
-            this->anonymize(fileName, patId, label);
+        QString timePointAnnotation = d.timePointLineEdit->text();
+        QTimer::singleShot(100, this, [this, fileName, patId, timePointAnnotation]() {
+            this->anonymize(fileName, patId, timePointAnnotation);
         });
     }
 

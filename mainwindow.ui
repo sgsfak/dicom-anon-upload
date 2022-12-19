@@ -23,6 +23,9 @@
       <property name="pixmap">
        <pixmap resource="resources.qrc">:/upload.png</pixmap>
       </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
      </widget>
     </item>
     <item row="1" column="0">
@@ -43,7 +46,7 @@
      <x>0</x>
      <y>0</y>
      <width>449</width>
-     <height>24</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

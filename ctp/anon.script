@@ -1,6 +1,9 @@
 <script>
-<p t="SITEID">5b513bc6-824a-4678-9420-a46d9f50833f</p>
+ <p t="SITEID">5b513bc6-824a-4678-9420-a46d9f50833f</p>
  <p t="UIDROOT">1.3.6.1.4.1.58108.1</p>
+ <p t="PATIENTID">1</p>
+ <p t="TIMEPOINTID">T1</p>
+ <p t="TIMEPOINTDESCR">INITIAL</p>
  <e en="F" n="LengthToEndRetired" t="00080001">@remove()</e>
  <e en="T" n="SpecificCharacterSet" t="00080005">@keep()</e>
  <e en="F" n="LanguageCodeSeq" t="00080006">@remove()</e>
@@ -106,7 +109,7 @@
  <e en="F" n="PrivateDataElementDefinitionSeq" t="00080310">@remove()</e>
  <e en="F" n="NetworkIDRetired" t="00081000">@remove()</e>
  <e en="F" n="StationName" t="00081010">@remove()</e>
- <e en="T" n="StudyDescription" t="00081030">@param(mpMRI prostate)</e>
+ <e en="T" n="StudyDescription" t="00081030">@keep()</e>
  <e en="F" n="ProcedureCodeSeq" t="00081032">@remove()</e>
  <e en="T" n="SeriesDescription" t="0008103E">@keep()</e>
  <e en="F" n="SeriesDescriptionCodeSeq" t="0008103F">@remove()</e>
@@ -217,8 +220,8 @@
  <e en="F" n="FrameDisplaySeq" t="00089458">@remove()</e>
  <e en="F" n="RecommendedDisplayFrameRateInFloat" t="00089459">@remove()</e>
  <e en="F" n="SkipFrameRangeFlag" t="00089460">@remove()</e>
- <e en="T" n="PatientName" t="00100010">@param(PCa-)@hashptid(@SITEID,PatientID)</e>
- <e en="T" n="PatientID" t="00100020">@param(PCa-)@hashptid(@SITEID,this)</e>
+ <e en="T" n="PatientName" t="00100010">@param(Patient-)@param(@PATIENTID)</e>
+ <e en="T" n="PatientID" t="00100020">@param(@PATIENTID)</e>
  <e en="F" n="IssuerOfPatientID" t="00100021">@remove()</e>
  <e en="F" n="TypeOfPatientID" t="00100022">@remove()</e>
  <e en="F" n="IssuerOfPatientIDQualifiersSeq" t="00100024">@remove()</e>
@@ -300,13 +303,13 @@
  <e en="F" n="ClinicalTrialSiteName" t="00120031">@empty()</e>
  <e en="F" n="ClinicalTrialSubjectID" t="00120040">@empty()</e>
  <e en="F" n="ClinicalTrialSubjectReadingID" t="00120042">@empty()</e>
- <e en="F" n="ClinicalTrialTimePointID" t="00120050">@empty()</e>
- <e en="F" n="ClinicalTrialTimePointDescription" t="00120051">@remove()</e>
+ <e en="F" n="ClinicalTrialTimePointID" t="00120050">@param(TIMEPOINTID)</e>
+ <e en="F" n="ClinicalTrialTimePointDescription" t="00120051">@param(TIMEPOINTDESCR)</e>
  <e en="F" n="LongitudinalTemporalOffsetFromEvent" t="00120052"></e>
  <e en="F" n="LongitudinalTemporalEventType" t="00120053"></e>
  <e en="F" n="CoordinatingCenterName" t="00120060">@empty()</e>
  <e en="T" n="PatientIdentityRemoved" t="00120062">YES</e>
- <e en="T" n="DeIdentificationMethod" t="00120063">@always()@append(){ProCAncer-I Whitelist}</e>
+ <e en="T" n="DeIdentificationMethod" t="00120063">@always()@append(){Cardiocare Deidentification}</e>
  <e en="T" n="DeIdentificationMethodCodeSeq" t="00120064">113100/113107/113108</e>
  <e en="F" n="ClinicalTrialSeriesID" t="00120071">@remove()</e>
  <e en="F" n="ClinicalTrialSeriesDescription" t="00120072">@remove()</e>
@@ -690,7 +693,7 @@
  <e en="T" n="SoftwareVersion" t="00181020">@keep()</e>
  <e en="F" n="VideoImageFormatAcquired" t="00181022"></e>
  <e en="F" n="DigitalImageFormatAcquired" t="00181023"></e>
- <e en="T" n="ProtocolName" t="00181030">@param(ProCAncer-I Prostate)</e>
+ <e en="T" n="ProtocolName" t="00181030">@param(Cardiocare)</e>
  <e en="F" n="ContrastBolusRoute" t="00181040"></e>
  <e en="F" n="ContrastBolusVolume" t="00181041"></e>
  <e en="F" n="ContrastBolusStartTime" t="00181042"></e>

@@ -11,11 +11,11 @@ private:
 
     const QString filePath_;
     const QString patId_;
-    const QString label_;
+    const QString timePointDescr_;
     const QString access_token_;
 
 public:
-    Worker(const QString &filePath, const QString& patId, const QString& label, const QString& token);
+    Worker(const QString &filePath, const QString& patId, const QString& timepointDesc, const QString& token);
 
 public slots:
     void anonymizeAndUpload();

@@ -1,6 +1,5 @@
 #include "loginwindow.h"
 #include "ui_loginwindow.h"
-#include "qtbcrypt.h"
 #include <QMessageBox>
 #include <QDebug>
 #include <QTimer>
@@ -13,14 +12,15 @@
 
 #include "mainwindow.h"
 
-#include "imph2mthread.h"
-
 LoginWindow::LoginWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::LoginWindow)
     , host_("https://cardiocare.ics.forth.gr/cardiocare/oauth2")
 {
     ui->setupUi(this);
+    QFont font = ui->loginLabel->font();
+    font.setPointSize(22);
+    ui->loginLabel->setFont(font);
 //    ui->centralwidget->setStyleSheet("background-color: white");
 //    ui->statusbar->setStyleSheet("background-color: white");
 

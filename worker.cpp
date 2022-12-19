@@ -20,10 +20,10 @@
 
 #include "zip.h"
 
-Worker::Worker(const QString &filePath, const QString& patId, const QString& label, const QString& token):
+Worker::Worker(const QString &filePath, const QString& patId, const QString& timepointDesc, const QString& token):
     filePath_(filePath),
     patId_(patId),
-    label_(label),
+    timePointDescr_(timepointDesc),
     access_token_(token)
 {}
 
@@ -44,6 +44,9 @@ void Worker::anonymizeAndUpload() {
     args << "-jar" << "DAT.jar"
         << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
         << "-da" << "anon.script"
+        << "-pSITEID" << "Test_"
+        << "-pPATIENTID" << this->patId_
+        << "-pTIMEPOINTDESCR" << this->timePointDescr_
         << "-in" << inputFolder.canonicalPath()
         << "-out" << outFolder;
     qDebug().noquote() << "Running java with" << args;

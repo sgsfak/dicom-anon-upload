@@ -1,3 +1,8 @@
+REVISION = $$system(git rev-parse --short HEAD)
+DEFINES += APP_REVISION=$$REVISION
+VERSION = 0.5.0
+DEFINES += APP_VERSION=$$VERSION
+
 QT       += core gui network sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
