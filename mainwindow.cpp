@@ -1,20 +1,22 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <qdebug.h>
+#include "ui_patientinfo.h"
+
+#include <QDebug>
 #include <QDragEnterEvent>
 #include <QDrag>
 #include <QDropEvent>
 #include <QMimeData>
 #include <QFileInfo>
 #include <QMessageBox>
-#include <QProcess>
-#include <QProcessEnvironment>
 #include <QProgressDialog>
 #include <QDir>
 #include <QThread>
 #include <QTimer>
 #include <QLabel>
+
+#include "worker.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -22,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     this->setAcceptDrops(true);
+    this->style = this->styleSheet();
 }
 
 
@@ -36,6 +39,7 @@ void MainWindow::on_tokens(const token_data& tokens) {
 void MainWindow::dropEvent(QDropEvent *event)
 {
     qDebug() << "dropEvent" << event->mimeData()->urls();
+    setStyleSheet (this->style);
     this->statusBar()->clearMessage();
 
     QList<QUrl> urls = event->mimeData()->urls();
@@ -51,12 +55,20 @@ void MainWindow::dropEvent(QDropEvent *event)
         return;
     }
 
+
     event->accept();
 
-    qDebug() << "File:" << qf;
-    QTimer::singleShot(100, this, [this, fileName]() {
-        this->anonymize(fileName);
-    });
+    QDialog dlg(this);
+    Ui::patientInfo d;
+    d.setupUi(&dlg);
+
+    if (dlg.exec() == QDialog::Accepted) {
+        QString patId = d.patientIDLineEdit->text();
+        QString label = d.labelLineEdit->text();
+        QTimer::singleShot(100, this, [this, fileName, patId, label]() {
+            this->anonymize(fileName, patId, label);
+        });
+    }
 
 }
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
@@ -65,9 +77,17 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
     qDebug() << mimeData->urls();
     if (mimeData->hasUrls() && mimeData->urls().constFirst().isLocalFile()) {
         this->statusBar()->showMessage(tr("Accepting.."));
+        setStyleSheet ("background-color: rgba(173, 173, 173, 0.7);");
         event->acceptProposedAction();
     }
 
+}
+
+void MainWindow::dragLeaveEvent(QDragLeaveEvent *event)
+{
+   event->accept ();
+
+   setStyleSheet (this->style);
 }
 
 static bool onMac()
@@ -80,41 +100,41 @@ static bool onMac()
 }
 
 
-void MainWindow::anonymize(const QString &folder)
+void MainWindow::anonymize(const QString &filePath, const QString& patId, const QString& label)
 {
     QProgressDialog* pd = new QProgressDialog(this);
     pd->setLabelText(QObject::tr("Anonymizing .."));
     pd->setRange(0,0);
     pd->setCancelButton(nullptr);
 
-    QDir appdir{QCoreApplication::applicationDirPath().append("/ctp")};
-    qDebug() << "appdir=" << appdir;
+    QThread* workerThread = new QThread(this);
+    Worker* worker = new Worker(filePath, patId, label, this->tokens.access_token);
+    worker->moveToThread(workerThread);
 
-    QStringList args;
-    args << "-jar" << "DAT.jar"
-        << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
-        << "-da" << "anon.script"
-        << "-in" << folder;
-    qDebug().noquote() << "Running java with" << args;
-    QProcess *proc = new QProcess(this);
+    connect(workerThread, &QThread::started, worker, &Worker::anonymizeAndUpload);
+    connect(worker, &Worker::progress, pd, &QProgressDialog::setLabelText);
 
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-//    env.insert("JAVA_HOME", "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home");
+    connect(worker, &Worker::finished, workerThread, &QThread::quit);
+    connect(worker, &Worker::finished, pd, &QProgressDialog::cancel);
+    connect(worker, &Worker::error, pd, &QProgressDialog::cancel);
 
+    // automatically delete thread and task object when work is done:
+    connect(worker, &Worker::finished, worker, &Worker::deleteLater);
+    connect(workerThread, &QThread::started, workerThread, &QThread::deleteLater);
 
-    proc->setWorkingDirectory(appdir.absolutePath());
-    proc->setProcessEnvironment(env);
-    proc->setProcessChannelMode(QProcess::MergedChannels);
+    connect(worker, &Worker::finished, this, [this] (int n) {
+        QMessageBox::information(this, tr("Finished"),
+                                     QString("Success: %1 DICOM images uploaded!").arg(n));
+        }
+    );
 
-    QObject::connect(proc, SIGNAL(finished(int)), pd, SLOT(cancel()));
-    QObject::connect(proc, SIGNAL(error(QProcess::ProcessError)), pd, SLOT(cancel()));
+    connect(worker, &Worker::error, this, [this] (const QString& error) {
+        QMessageBox::warning(this, tr("Failed"), error);
+        //pd->cancel();
+    });
 
-    proc->start("java", args, QIODevice::ReadOnly);
+    workerThread->start();
     pd->exec();
-
-    QString output = proc->readAll().constData();
-    qDebug().noquote() << output;
-
 }
 
 MainWindow::~MainWindow()

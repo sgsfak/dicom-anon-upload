@@ -21,7 +21,8 @@ public:
 protected:
     void dropEvent(QDropEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
-    void anonymize(const QString& folder);
+    void dragLeaveEvent(QDragLeaveEvent *event) override;
+    void anonymize(const QString& folder, const QString& patId, const QString& label);
 
 public slots:
     void on_tokens(const token_data& t);
@@ -29,6 +30,7 @@ public slots:
 private:
     Ui::MainWindow *ui;
     token_data tokens;
+    QString style;
 };
 
 #endif // MAINWINDOW_H
