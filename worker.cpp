@@ -20,9 +20,12 @@
 
 #include "zip.h"
 
-Worker::Worker(const QString &filePath, const QString& patId, const QString& timepointDesc, const QString& token):
+Worker::Worker(const QString &filePath, const QString& patId,
+               const QString& timepointId, const QString& timepointDesc,
+               const QString& token):
     filePath_(filePath),
     patId_(patId),
+    timePointId_(timepointId),
     timePointDescr_(timepointDesc),
     access_token_(token)
 {}
@@ -40,12 +43,15 @@ void Worker::anonymizeAndUpload() {
     QString tempDir = QString::number(now.toSecsSinceEpoch()) + "-" + inputFolder.dirName();
     QString outFolder = outputAnonFolder.filePath(tempDir );
 
+    // Use the Clinical trial attributes to pass the "time point" related annotation:
+    // https://dicom.nema.org/medical/Dicom/2016b/output/chtml/part03/sect_C.7.2.3.html#sect_C.7.2.3.1.1
     QStringList args;
     args << "-jar" << "DAT.jar"
         << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
         << "-da" << "anon.script"
         << "-pSITEID" << "Test_"
         << "-pPATIENTID" << this->patId_
+        << "-pTIMEPOINTID" << this->timePointId_
         << "-pTIMEPOINTDESCR" << this->timePointDescr_
         << "-in" << inputFolder.canonicalPath()
         << "-out" << outFolder;

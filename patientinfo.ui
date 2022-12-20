@@ -40,7 +40,7 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QLineEdit" name="timePointLineEdit"/>
+      <widget class="QComboBox" name="timepointComboBox"/>
      </item>
     </layout>
    </item>

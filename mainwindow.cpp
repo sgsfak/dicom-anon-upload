@@ -15,6 +15,7 @@
 #include <QThread>
 #include <QTimer>
 #include <QLabel>
+#include <QSqlQuery>
 
 #include "worker.h"
 
@@ -28,6 +29,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     this->setAcceptDrops(true);
     this->style = this->styleSheet();
+
+
+    QSqlQuery q;
+    q.prepare("SELECT id, descr FROM timepoints");
+    q.exec();
+    while (q.next()) {
+        this->timepoints_.emplace_back(q.value(0).toString(), q.value(1).toString());
+    }
 }
 
 
@@ -64,12 +73,16 @@ void MainWindow::dropEvent(QDropEvent *event)
     QDialog dlg(this);
     Ui::patientInfo d;
     d.setupUi(&dlg);
+    for(const auto& s: this->timepoints_) {
+       d.timepointComboBox->addItem(s.second, s.first);
+    }
 
     if (dlg.exec() == QDialog::Accepted) {
         QString patId = d.patientIDLineEdit->text();
-        QString timePointAnnotation = d.timePointLineEdit->text();
-        QTimer::singleShot(100, this, [this, fileName, patId, timePointAnnotation]() {
-            this->anonymize(fileName, patId, timePointAnnotation);
+        QString timePointId = d.timepointComboBox->currentData(Qt::UserRole).toString();
+        QString timePointAnnotation = d.timepointComboBox->currentText();
+        QTimer::singleShot(100, this, [this, fileName, patId, timePointId, timePointAnnotation]() {
+            this->anonymize(fileName, patId, timePointId, timePointAnnotation);
         });
     }
 
@@ -103,7 +116,8 @@ static bool onMac()
 }
 
 
-void MainWindow::anonymize(const QString &filePath, const QString& patId, const QString& label)
+void MainWindow::anonymize(const QString &filePath, const QString& patId,
+                           const QString& tmId, const QString& label)
 {
     QProgressDialog* pd = new QProgressDialog(this);
     pd->setLabelText(QObject::tr("Anonymizing .."));
@@ -111,7 +125,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId, const 
     pd->setCancelButton(nullptr);
 
     QThread* workerThread = new QThread(this);
-    Worker* worker = new Worker(filePath, patId, label, this->tokens.access_token);
+    Worker* worker = new Worker(filePath, patId, tmId, label, this->tokens.access_token);
     worker->moveToThread(workerThread);
 
     connect(workerThread, &QThread::started, worker, &Worker::anonymizeAndUpload);

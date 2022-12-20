@@ -3,7 +3,7 @@
  <p t="UIDROOT">1.3.6.1.4.1.58108.1</p>
  <p t="PATIENTID">1</p>
  <p t="TIMEPOINTID">T1</p>
- <p t="TIMEPOINTDESCR">INITIAL</p>
+ <p t="TIMEPOINTDESCR">initial</p>
  <e en="F" n="LengthToEndRetired" t="00080001">@remove()</e>
  <e en="T" n="SpecificCharacterSet" t="00080005">@keep()</e>
  <e en="F" n="LanguageCodeSeq" t="00080006">@remove()</e>
@@ -303,13 +303,13 @@
  <e en="F" n="ClinicalTrialSiteName" t="00120031">@empty()</e>
  <e en="F" n="ClinicalTrialSubjectID" t="00120040">@empty()</e>
  <e en="F" n="ClinicalTrialSubjectReadingID" t="00120042">@empty()</e>
- <e en="F" n="ClinicalTrialTimePointID" t="00120050">@param(TIMEPOINTID)</e>
- <e en="F" n="ClinicalTrialTimePointDescription" t="00120051">@param(TIMEPOINTDESCR)</e>
+ <e en="T" n="ClinicalTrialTimePointID" t="00120050">@always()@param(@TIMEPOINTID)</e>
+ <e en="T" n="ClinicalTrialTimePointDescription" t="00120051">@always()@param(@TIMEPOINTDESCR)</e>
  <e en="F" n="LongitudinalTemporalOffsetFromEvent" t="00120052"></e>
  <e en="F" n="LongitudinalTemporalEventType" t="00120053"></e>
  <e en="F" n="CoordinatingCenterName" t="00120060">@empty()</e>
  <e en="T" n="PatientIdentityRemoved" t="00120062">YES</e>
- <e en="T" n="DeIdentificationMethod" t="00120063">@always()@append(){Cardiocare Deidentification}</e>
+ <e en="T" n="DeIdentificationMethod" t="00120063">@always()@append(){Cardiocare Deidentification : @date():@time()}</e>
  <e en="T" n="DeIdentificationMethodCodeSeq" t="00120064">113100/113107/113108</e>
  <e en="F" n="ClinicalTrialSeriesID" t="00120071">@remove()</e>
  <e en="F" n="ClinicalTrialSeriesDescription" t="00120072">@remove()</e>

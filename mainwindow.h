@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QPair>
+#include <vector>
 
 #include "token_data.h"
 
@@ -22,7 +24,7 @@ protected:
     void dropEvent(QDropEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragLeaveEvent(QDragLeaveEvent *event) override;
-    void anonymize(const QString& folder, const QString& patId, const QString& label);
+    void anonymize(const QString& folder, const QString& patId, const QString& tmId, const QString& label);
 
 public slots:
     void on_tokens(const token_data& t);
@@ -31,6 +33,8 @@ private:
     Ui::MainWindow *ui;
     token_data tokens;
     QString style;
+
+    std::vector<QPair<QString, QString>> timepoints_;
 };
 
 #endif // MAINWINDOW_H
