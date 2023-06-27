@@ -81,7 +81,7 @@ void MainWindow::dropEvent(QDropEvent *event)
         QString patId = d.patientIDLineEdit->text();
         QString timePointId = d.timepointComboBox->currentData(Qt::UserRole).toString();
         QString timePointAnnotation = d.timepointComboBox->currentText();
-        QTimer::singleShot(100, this, [this, fileName, patId, timePointId, timePointAnnotation]() {
+        QTimer::singleShot(0, this, [this, fileName, patId, timePointId, timePointAnnotation]() {
             this->anonymize(fileName, patId, timePointId, timePointAnnotation);
         });
     }
@@ -106,16 +106,6 @@ void MainWindow::dragLeaveEvent(QDragLeaveEvent *event)
    setStyleSheet (this->style);
 }
 
-static bool onMac()
-{
-#if defined(Q_OS_OSX)
-    return true;
-#else
-    return false;
-#endif
-}
-
-
 void MainWindow::anonymize(const QString &filePath, const QString& patId,
                            const QString& tmId, const QString& label)
 {
@@ -137,7 +127,8 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
 
     // automatically delete thread and task object when work is done:
     connect(worker, &Worker::finished, worker, &Worker::deleteLater);
-    connect(workerThread, &QThread::started, workerThread, &QThread::deleteLater);
+    connect(worker, &Worker::error, worker, &Worker::deleteLater);
+//    connect(workerThread, &QThread::started, workerThread, &QThread::deleteLater);
 
     connect(worker, &Worker::finished, this, [this] (int n) {
         QMessageBox::information(this, tr("Finished"),
