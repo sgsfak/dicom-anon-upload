@@ -43,13 +43,17 @@ SOURCES += \
     loginwindow.cpp \
     main.cpp \
     mainwindow.cpp \
-    worker.cpp
+    worker.cpp \
+    xxhash/xxh_x86dispatch.c \
+    xxhash/xxhash.c
 
 HEADERS += \
     loginwindow.h \
     mainwindow.h \
     token_data.h \
-    worker.h
+    worker.h \
+    xxhash/xxh_x86dispatch.h \
+    xxhash/xxhash.h
 
 FORMS += \
     loginwindow.ui \

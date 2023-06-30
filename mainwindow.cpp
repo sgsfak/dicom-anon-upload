@@ -30,7 +30,6 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setAcceptDrops(true);
     this->style = this->styleSheet();
 
-
     QSqlQuery q;
     q.prepare("SELECT id, descr FROM timepoints");
     q.exec();
@@ -109,10 +108,7 @@ void MainWindow::dragLeaveEvent(QDragLeaveEvent *event)
 void MainWindow::anonymize(const QString &filePath, const QString& patId,
                            const QString& tmId, const QString& label)
 {
-    QProgressDialog* pd = new QProgressDialog(this);
-    pd->setLabelText(QObject::tr("Anonymizing .."));
-    pd->setRange(0,0);
-    pd->setCancelButton(nullptr);
+    QProgressDialog* pd = new QProgressDialog(QObject::tr("Anonymizing .."), nullptr, 0, 1000, this);
 
     QThread* workerThread = new QThread(this);
     Worker* worker = new Worker(filePath, patId, tmId, label, this->tokens.access_token);
@@ -120,6 +116,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
 
     connect(workerThread, &QThread::started, worker, &Worker::anonymizeAndUpload);
     connect(worker, &Worker::progress, pd, &QProgressDialog::setLabelText);
+    connect(worker, &Worker::uploadProgress1000, pd, &QProgressDialog::setValue);
 
     connect(worker, &Worker::finished, workerThread, &QThread::quit);
     connect(worker, &Worker::finished, pd, &QProgressDialog::cancel);
