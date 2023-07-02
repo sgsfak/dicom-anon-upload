@@ -26,6 +26,10 @@
 #include "zip.h"
 #include "xxhash/xxh_x86dispatch.h"
 
+#include <stdexcept>
+
+#define SERVER_URL "https://dcm.cardiocare-project.eu"
+
 Worker::Worker(const QString &filePath, const QString& patId,
                const QString& timepointId, const QString& timepointDesc,
                const QString& token):
@@ -34,6 +38,7 @@ Worker::Worker(const QString &filePath, const QString& patId,
     timePointId_(timepointId),
     timePointDescr_(timepointDesc),
     access_token_(token),
+    completed_(false),
     totalBytes_(0),
     nfiles_(0),
     nfinished_(0),
@@ -43,15 +48,15 @@ Worker::Worker(const QString &filePath, const QString& patId,
 
 namespace {
 
-QString fileHash(const QString& fn, QCryptographicHash::Algorithm algo=QCryptographicHash::Sha256)
+QString fileHash(const QString& fn, QCryptographicHash::Algorithm algo=QCryptographicHash::Md5)
 {
 
     QFile f {fn};
     f.open(QIODevice::ReadOnly | QIODevice::ExistingOnly);
-    QCryptographicHash sha{algo};
-    sha.addData(&f);
+    QCryptographicHash hasher{algo};
+    hasher.addData(&f);
     f.close();
-    return sha.result().toHex();
+    return hasher.result().toHex();
 }
 
 QString fileHash_xxh3(const QString& fn)
@@ -89,8 +94,19 @@ QString fileHash_xxh3(const QString& fn)
      */
 }
 
-int send_post_req(const QString& url, const QString& content_type, const QString& token, const QByteArray& content,
-                          QJsonObject& response) {
+struct HttpException: public std::exception
+{
+    const int status_code;
+    const QString status_description;
+
+    HttpException(): status_code(0), status_description("") {}
+    HttpException(int c, const QString& d): status_code(c), status_description(d) {}
+};
+
+
+QJsonDocument send_post_req(const QString& url, const QString& content_type, const QString& token, const QByteArray& content)
+{
+    qDebug().noquote() << " * POSTing to" << url << ":" << content;
 
     QNetworkAccessManager manager;
 
@@ -109,17 +125,24 @@ int send_post_req(const QString& url, const QString& content_type, const QString
 
     reply->deleteLater();
 
+    QJsonDocument response;
+
     QVariant status_code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     if (!status_code.isValid()) {
-        return -1;
+        qDebug().noquote() << "* POST to" << url << "returned no valid status code";
+        throw HttpException(0,
+                            "Communication error with the server");
     }
-    if (status_code.toInt() / 100 != 2) {
-        return -2;
+    else if (status_code.toInt() / 100 != 2) {
+        QString reason = reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toByteArray();
+        qDebug().noquote() << "* POST to" << url << "returned:" << status_code.toInt() << reason;
+        throw HttpException(status_code.toInt(), reason);
     }
-
-    QByteArray result = reply->readAll();
-    response = QJsonDocument::fromJson(result).object();
-    return 0;
+    else {
+        QByteArray result = reply->readAll();
+        response = QJsonDocument::fromJson(result);
+    }
+    return response;
 
 }
 }
@@ -129,15 +152,9 @@ void Worker::uploadFinished(QNetworkReply* reply)
 
     this->nfinished_ += 1;
     if (reply->error() != QNetworkReply::NoError) {
+        qDebug().noquote() << "* Upload to" << reply->url() << "returned" << reply->error();
         this->nerror_ += 1;
     }
-    /*
-    else {
-
-        QByteArray result = reply->readAll();
-        qDebug().noquote() << "GOT" << result;
-    }
-    */
 
     reply->deleteLater();
 
@@ -149,11 +166,13 @@ void Worker::uploadFinished(QNetworkReply* reply)
 
 int Worker::upload_dcms(const QDir& outputAnonFolder)
 {
+    this->completed_ = false;
+
     QList<QFileInfo> dcm_list;
     QDirIterator iter(outputAnonFolder, QDirIterator::Subdirectories);
     while (iter.hasNext()) {
         QString s = iter.next();
-        qDebug().noquote() << "Now at " << s;
+        // qDebug().noquote() << "Now at " << s;
         QFileInfo fileInfo = iter.fileInfo();
         if (fileInfo.isFile()) {
             dcm_list.append(fileInfo);
@@ -161,23 +180,47 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
     }
 
     QVector<QPair<QFileInfo, QString> > file_hashes;
-    QFileInfo fi;
     qint64 total_bytes = 0;
-    Q_FOREACH(fi, dcm_list) {
-        QString hash = ::fileHash_xxh3(fi.absoluteFilePath());
+    for(const QFileInfo& fi: dcm_list) {
+        QString hash = ::fileHash(fi.absoluteFilePath());
         file_hashes.push_back(qMakePair(fi, hash));
         total_bytes += fi.size();
     }
 
-    QJsonObject response;
-    int k = ::send_post_req("https://dcm.cardiocare-project.eu/uploads", "application/json",
-                            this->access_token_, QByteArray{}, response);
-    if (k < 0) {
-        emit error("error communicating with the server");
+    QJsonArray arr;
+    for(auto&p: file_hashes) {
+        QJsonObject obj;
+        obj.insert("filename", p.first.fileName());
+        obj.insert("size", p.first.size());
+        obj.insert("md5_hash", p.second);
+        arr.append(obj);
+    }
+    QJsonDocument response;
+    try {
+        QJsonObject obj;
+        obj.insert("files", arr);
+        obj.insert("patient_id", this->patId_);
+        obj.insert("timepoint_id", this->timePointId_);
+        QByteArray json_data = QJsonDocument(obj).toJson(QJsonDocument::Compact);
+        response = ::send_post_req(SERVER_URL "/uploads",
+                                   "application/json",
+                                   this->access_token_,
+                                   json_data);
+    }
+    catch (HttpException ex) {
+        if (ex.status_code == 401) {
+            emit error("Error authenticating with the server, you 'd better reopen the application!");
+        }
+        else if (ex.status_code == 0) {
+            emit error("error communicating with the server");
+        }
+        else {
+            emit error(ex.status_description);
+        }
         return 0;
     }
 
-    QString upload_id = response.value("id").toString();
+    QString upload_id = response.object().value("id").toString();
     qDebug() << "upload id" << upload_id;
 
     this->nfiles_ = file_hashes.size();
@@ -193,10 +236,10 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
     emit progress("Uploading..");
 
     QPair<QFileInfo, QString> p;
-    Q_FOREACH(p, file_hashes) {
+    for(auto& p: file_hashes) {
         QNetworkRequest request;
-        request.setUrl(QString("https://dcm.cardiocare-project.eu/dicom-upload?id=%1").arg(upload_id));
-        request.setRawHeader("Content-XXH3", p.second.toUtf8());
+        request.setUrl(QString(SERVER_URL "/dicom-upload?id=%1").arg(upload_id));
+        request.setRawHeader("Content-MD5", p.second.toUtf8());
         request.setHeader(QNetworkRequest::ContentTypeHeader,"application/dicom");
         QString authHeader = QString("Bearer ") + this->access_token_;
         request.setRawHeader("Authorization", authHeader.toUtf8());
@@ -214,6 +257,33 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
         QObject::connect(reply, &QNetworkReply::uploadProgress, this, &Worker::uploadProgress);
     }
     this->eventLoop_->exec();
+    if (this->nerror_ > 0) {
+        emit error(QString("Error: %1 files failed to be uploaded, better contact admin").arg(this->nerror_));
+        return 0;
+    }
+
+    try {
+        QJsonObject obj;
+        obj.insert("status", "finished");
+        QByteArray json_data = QJsonDocument(obj).toJson(QJsonDocument::Compact);
+        response = ::send_post_req(QString(SERVER_URL "/uploads/%1").arg(upload_id),
+                                   "application/json",
+                                   this->access_token_,
+                                   json_data);
+    }
+    catch (const HttpException& ex) {
+        if (ex.status_code == 401) {
+            emit error("Error authenticating with the server, you 'd better reopen the application!");
+        }
+        else if (ex.status_code == 0) {
+            emit error("error communicating with the server");
+        }
+        else {
+            emit error("Server error:" + ex.status_description);
+        }
+        return 0;
+    }
+    this->completed_ = true;
     return this->nfiles_;
 }
 
@@ -337,6 +407,9 @@ void Worker::anonymizeAndUpload() {
     }
 
     int n = this->upload_dcms(outFolder);
+    if (this->success()) {
+        emit finished(n);
+    }
 
     /*
     emit progress("Creating ZIP with images..");
@@ -392,7 +465,7 @@ void Worker::anonymizeAndUpload() {
     int n = jsonArr.size();
     qDebug().noquote() << "Uploaded " << n << "images";
 
-    */
     emit finished(n);
+    */
 }
 

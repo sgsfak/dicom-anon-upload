@@ -19,12 +19,16 @@ private:
 public:
     Worker(const QString &filePath, const QString& patId, const QString& timepointId,
            const QString& timepointDesc, const QString& token);
+
+    bool success() const { return this->completed_ && this->nerror_ == 0; }
     
 private:
     int zipFolder(const class QDir&, const QString&, const QString&);
     int upload_dcms(const class QDir&);
 
 private:
+    bool completed_;
+
     // Private counters for the upload progress
 
     qint64 totalBytes_; // the total size of the DICOMs to upload

@@ -127,9 +127,11 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
     connect(worker, &Worker::error, worker, &Worker::deleteLater);
 //    connect(workerThread, &QThread::started, workerThread, &QThread::deleteLater);
 
-    connect(worker, &Worker::finished, this, [this] (int n) {
-        QMessageBox::information(this, tr("Finished"),
-                                     QString("Success: %1 DICOM images uploaded!").arg(n));
+    connect(worker, &Worker::finished, this, [this, worker] (int n) {
+            if (worker->success()) {
+                QMessageBox::information(this, tr("Finished"),
+                                         QString("Success: %1 DICOM images uploaded!").arg(n));
+            }
         }
     );
 
