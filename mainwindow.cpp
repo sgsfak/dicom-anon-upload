@@ -18,6 +18,7 @@
 #include <QSqlQuery>
 
 #include "worker.h"
+#define VERSION "0.7.0"
 
 #define _STR(X) #X
 #define STR(X) _STR(X)
@@ -26,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    this->setUnifiedTitleAndToolBarOnMac(true);
     ui->setupUi(this);
     this->setAcceptDrops(true);
     this->style = this->styleSheet();
@@ -39,10 +41,11 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 
-void MainWindow::on_tokens(const token_data& tokens) {
+void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->tokens = tokens;
     QLabel *label = new QLabel(this);
-    label->setText("Git rev:" STR(APP_REVISION));
+//    label->setText("Git rev:" STR(APP_REVISION));
+    label->setText(QString("User: %1").arg(user.name));
     this->statusBar()->addWidget(label);
     this->show();
 }
@@ -148,3 +151,12 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+void MainWindow::on_action_About_triggered()
+{
+    QMessageBox::information(this, "About DICOM Upload Tool",
+                             "<h1>Cardiocare DICOM Upload tool</h1>"
+                             "Version: " VERSION "<br>"
+                             "&copy; FORTH-ICS, 2023");
+}
+

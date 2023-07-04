@@ -8,4 +8,10 @@ struct token_data {
     int expires_in;
 };
 
+
+struct user_info {
+    QString user_id;
+    QString name;
+};
+
 #endif // TOKEN_DATA_H

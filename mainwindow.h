@@ -27,7 +27,10 @@ protected:
     void anonymize(const QString& folder, const QString& patId, const QString& tmId, const QString& label);
 
 public slots:
-    void on_tokens(const token_data& t);
+    void on_tokens(const token_data& t, const user_info& u);
+
+private slots:
+    void on_action_About_triggered();
 
 private:
     Ui::MainWindow *ui;

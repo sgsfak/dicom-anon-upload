@@ -13,10 +13,11 @@ int main(int argc, char *argv[])
     a.setWindowIcon(QIcon(":/cardiocare-logo.ico"));
     LoginWindow* w = new LoginWindow;
     w->show();
-    QObject::connect(w, &LoginWindow::tokens, w, [w](const token_data& tokens) {
+    QObject::connect(w, &LoginWindow::tokens, w, [w](const token_data& tokens, const user_info& user) {
         MainWindow* mw = new MainWindow;
-        mw->on_tokens(tokens);
+        mw->on_tokens(tokens, user);
         mw->show();
+        mw->raise();
         w->close();
         w->deleteLater();
     });

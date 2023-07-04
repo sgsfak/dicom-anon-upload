@@ -276,7 +276,7 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
             emit error("Error authenticating with the server, you 'd better reopen the application!");
         }
         else if (ex.status_code == 0) {
-            emit error("error communicating with the server");
+            emit error("Error communicating with the server");
         }
         else {
             emit error("Server error:" + ex.status_description);
@@ -408,6 +408,7 @@ void Worker::anonymizeAndUpload() {
 
     int n = this->upload_dcms(outFolder);
     if (this->success()) {
+        QDir(outFolder).removeRecursively();
         emit finished(n);
     }
 
