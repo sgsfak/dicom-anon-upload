@@ -1,38 +1,30 @@
-#ifndef WORKER_H
-#define WORKER_H
+#ifndef UPLOAD_WORKER_H
+#define UPLOAD_WORKER_H
 
 #include <QObject>
 #include <QString>
 #include <unordered_map>
 
-class Worker : public QObject
+class UploadWorker : public QObject
 {
     Q_OBJECT
-private:
-    const qint64 id_;
-    const QString filePath_;
-    const QString patId_;
-    const QString timePointId_;
-    const QString timePointDescr_;
-    const QString access_token_;
-
 public:
-    Worker(const QString &filePath, const QString& patId, const QString& timepointId,
-           const QString& timepointDesc, const QString& token);
+    explicit UploadWorker(const QString& token, const QString& folder,
+                          const QString& patId, const QString& timepointId);
 
     bool success() const { return this->completed_ && this->nerror_ == 0; }
 
-    QString patient_id() const { return this->patId_; }
-    QString timepoint_id() const { return this->timePointId_; }
-    QString timepoint() const { return this->timePointDescr_; }
+    QString folder() const { return this->folder_; }
 
-    QString temp_anon_folder() const;
-    
 private:
-    int zipFolder(const class QDir&, const QString&, const QString&);
     int upload_dcms(const class QDir&);
 
 private:
+    const QString access_token_;
+    const QString folder_;
+    const QString patient_id_;
+    const QString timepoint_id_;
+
     bool completed_;
 
     // Private counters for the upload progress
@@ -46,19 +38,17 @@ private:
 
     class QEventLoop* eventLoop_;
 public slots:
-    void anonymize();
-    void upload(const QString& anon_folder="");
+    void upload();
 
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
     void uploadFinished(class QNetworkReply*);
 
 signals:
-    void finishedAnon();
-
     void finished(int images_uploaded);
     void error(const QString& error);
-    void progress(const QString&);
+
     void uploadProgress1000(int);
+
 };
 
-#endif // WORKER_H
+#endif // UPLOAD_WORKER_H

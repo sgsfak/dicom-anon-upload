@@ -40,25 +40,33 @@ LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows\lib -LC:\Users\User\vc
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    historyform.cpp \
     loginwindow.cpp \
     main.cpp \
     mainwindow.cpp \
+    upload_worker.cpp \
+    utils.cpp \
     worker.cpp \
     xxhash/xxh_x86dispatch.c \
     xxhash/xxhash.c
 
 HEADERS += \
+    historyform.h \
     loginwindow.h \
     mainwindow.h \
     token_data.h \
+    upload_worker.h \
+    utils.h \
     worker.h \
     xxhash/xxh_x86dispatch.h \
     xxhash/xxhash.h
 
 FORMS += \
+    historyform.ui \
     loginwindow.ui \
     mainwindow.ui \
-    patientinfo.ui
+    patientinfo.ui \
+    progress_dialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

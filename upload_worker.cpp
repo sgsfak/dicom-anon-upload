@@ -1,14 +1,4 @@
-
-#include "worker.h"
-
-#include <QApplication>
-#include <QDebug>
-#include <QProcess>
-#include <QProcessEnvironment>
-#include <QDir>
-#include <QDirIterator>
-#include <QDateTime>
-#include <QThread>
+#include "upload_worker.h"
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QNetworkAccessManager>
@@ -22,31 +12,30 @@
 #include <QDataStream>
 #include <QVector>
 #include <QPair>
-
-#include "zip.h"
-#include "xxhash/xxh_x86dispatch.h"
+#include <QFileInfo>
+#include <QDirIterator>
+#include <QList>
+#include <QEventLoop>
 
 #include <stdexcept>
 
 #define SERVER_URL "https://dcm.cardiocare-project.eu"
 
-Worker::Worker(const QString &filePath, const QString& patId,
-               const QString& timepointId, const QString& timepointDesc,
-               const QString& token):
 
-    id_(QDateTime::currentDateTime().toSecsSinceEpoch()),
-    filePath_(filePath),
-    patId_(patId),
-    timePointId_(timepointId),
-    timePointDescr_(timepointDesc),
+UploadWorker::UploadWorker(const QString& token,  const QString& folder,
+                           const QString& patId, const QString& timepointId):
     access_token_(token),
+    folder_(folder),
+    patient_id_(patId),
+    timepoint_id_(timepointId),
     completed_(false),
     totalBytes_(0),
     nfiles_(0),
     nfinished_(0),
     nerror_(0)
+{
 
-{}
+}
 
 namespace {
 
@@ -59,41 +48,6 @@ QString fileHash(const QString& fn, QCryptographicHash::Algorithm algo=QCryptogr
     hasher.addData(&f);
     f.close();
     return hasher.result().toHex();
-}
-
-QString fileHash_xxh3(const QString& fn)
-{
-
-    QFile f {fn};
-    f.open(QIODevice::ReadOnly | QIODevice::ExistingOnly);
-    uchar* p = f.map(qint64(0), f.size());
-    quint64 h = XXH3_64bits_dispatch(p, static_cast<size_t>(f.size()));
-    f.unmap(p);
-    f.close();
-
-    QString hexvalue = QString("%1").arg(h, 8, 16, QLatin1Char( '0' ));
-    // qDebug().noquote() << "File:" << fn << ":" << hexvalue;
-    return hexvalue;
-
-    // Alternative:
-    //    QBuffer buf;
-    //    buf.open(QBuffer::ReadWrite);
-    //    QDataStream stream(&buf);
-
-    //    stream << h;
-    //    return buf.buffer().toHex();
-
-    // See also https://github.com/Cyan4973/xxHash/issues/829 :
-    /*
-        std::string xxh128_hash_to_string(XXH128_hash_t hash) {
-             char buf[33];
-             snprintf(buf, sizeof(buf),
-                      "%016llx%016llx",
-                      (unsigned long long)hash.high64,
-                      (unsigned long long)hash.low64);
-             return std::string(buf);
-         }
-     */
 }
 
 struct HttpException: public std::exception
@@ -147,26 +101,11 @@ QJsonDocument send_post_req(const QString& url, const QString& content_type, con
     return response;
 
 }
-}
-
-void Worker::uploadFinished(QNetworkReply* reply)
-{
-
-    this->nfinished_ += 1;
-    if (reply->error() != QNetworkReply::NoError) {
-        qDebug().noquote() << "* Upload to" << reply->url() << "returned" << reply->error();
-        this->nerror_ += 1;
-    }
-
-    reply->deleteLater();
-
-    if (this->nfinished_ == this->nfiles_) {
-        this->eventLoop_->quit();
-    }
 
 }
 
-int Worker::upload_dcms(const QDir& outputAnonFolder)
+
+int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
 {
     this->completed_ = false;
 
@@ -201,8 +140,8 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
     try {
         QJsonObject obj;
         obj.insert("files", arr);
-        obj.insert("patient_id", this->patId_);
-        obj.insert("timepoint_id", this->timePointId_);
+        obj.insert("patient_id", this->patient_id_);
+        obj.insert("timepoint_id", this->timepoint_id_);
         QByteArray json_data = QJsonDocument(obj).toJson(QJsonDocument::Compact);
         response = ::send_post_req(SERVER_URL "/uploads",
                                    "application/json",
@@ -233,9 +172,7 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
     this->eventLoop_ = new QEventLoop(this);
     QNetworkAccessManager manager;
 
-    QObject::connect(&manager, &QNetworkAccessManager::finished, this, &Worker::uploadFinished);
-
-    emit progress("Uploading..");
+    QObject::connect(&manager, &QNetworkAccessManager::finished, this, &UploadWorker::uploadFinished);
 
     QPair<QFileInfo, QString> p;
     for(auto& p: file_hashes) {
@@ -256,7 +193,7 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
         data->setParent(reply); // The QFile will be closed when reply is deleted
 
         // Get updates on the upload progress of this file:
-        QObject::connect(reply, &QNetworkReply::uploadProgress, this, &Worker::uploadProgress);
+        QObject::connect(reply, &QNetworkReply::uploadProgress, this, &UploadWorker::uploadProgress);
     }
     this->eventLoop_->exec();
     if (this->nerror_ > 0) {
@@ -290,7 +227,7 @@ int Worker::upload_dcms(const QDir& outputAnonFolder)
 }
 
 
-void Worker::uploadProgress(qint64 bytesSent, qint64 bytesTotal)
+void UploadWorker::uploadProgress(qint64 bytesSent, qint64 bytesTotal)
 {
     if (bytesTotal == 0)
         return;
@@ -311,120 +248,29 @@ void Worker::uploadProgress(qint64 bytesSent, qint64 bytesTotal)
     emit uploadProgress1000(k);
 }
 
-int Worker::zipFolder(const QDir& outputAnonFolder, const QString& outZip, const QString& outFolder)
-{
-    zip_t* z = zip_open(outZip.toLocal8Bit().data(), ZIP_TRUNCATE|ZIP_CREATE, nullptr);
-
-    QDir outputFolder{ outFolder };
-    QDirIterator it(outputFolder.canonicalPath(), QDir::Files | QDir::AllDirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
-    int nfiles = 0;
-    while (it.hasNext()) {
-        QString fn = it.next();
-        QFileInfo fi = it.fileInfo();
-        QString entry = outputAnonFolder.relativeFilePath(fn);
-        if (fi.isDir()) {
-            zip_dir_add(z, entry.toLocal8Bit().data(), ZIP_FL_ENC_UTF_8);
-        }
-        else {
-            qDebug().noquote() << fi.fileName() << ::fileHash_xxh3(fi.absoluteFilePath());
-
-            zip_source_t* t = zip_source_file(z, fn.toLocal8Bit().data(), 0, 0);
-            zip_add(z, entry.toLocal8Bit().data(), t);
-            nfiles++;
-        }
-        qDebug().noquote() << "Adding" << ( fi.isDir() ? "dir" : "file") << entry;
-    }
-    qDebug().noquote() << "Finished adding, files added:" << nfiles;
-    emit progress("Creating final ZIP file..");
-    zip_close(z);
-    return nfiles;
-}
-
-QString Worker::temp_anon_folder() const
-{
-    QString sub_folfer = QString("/anon-out/%1_%2_%3")
-            .arg(this->patId_)
-            .arg(this->timePointId_)
-            .arg(this->id_);
-    return QCoreApplication::applicationDirPath().append(sub_folfer);
-}
-
-void Worker::anonymize() {
-
-    QDir appdir{QCoreApplication::applicationDirPath().append("/ctp")};
-    qDebug() << "appdir=" << appdir;
-
-    QDir inputFolder{filePath_};
-
-    QDateTime now = QDateTime::currentDateTime();
-
-//    QDir outputAnonFolder = this->temp_anon_folder();
-
-//    QString tempDir = QString::number(now.toSecsSinceEpoch()) + "-" + inputFolder.dirName();
-//    QString outFolder = outputAnonFolder.filePath(tempDir );
-    QString outFolder = this->temp_anon_folder();
-
-    int k = this->patId_.indexOf('-');
-    if (k == -1) {
-        k = 0;
-    }
-    QString siteId = "Cardiocare-" + this->patId_.left(k);
-
-    // Use the Clinical trial attributes to pass the "time point" related annotation:
-    // https://dicom.nema.org/medical/Dicom/2016b/output/chtml/part03/sect_C.7.2.3.html#sect_C.7.2.3.1.1
-    QStringList args;
-    args << "-jar" << "DAT.jar"
-        << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
-        << "-da" << "anon.script"
-        << "-pSITEID" << siteId
-        << "-pPATIENTID" << this->patId_
-        << "-pTIMEPOINTID" << this->timePointId_
-        << "-pTIMEPOINTDESCR" << this->timePointDescr_
-        << "-in" << inputFolder.canonicalPath()
-        << "-out" << outFolder;
-    qDebug().noquote() << "Running java with" << args;
-    QProcess *proc = new QProcess(this);
-
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-//    env.insert("JAVA_HOME", "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home");
 
 
-    proc->setWorkingDirectory(appdir.absolutePath());
-    proc->setProcessEnvironment(env);
-    proc->setProcessChannelMode(QProcess::MergedChannels);
-
-    //    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-    //            this,
-    //            [](int exitCode, QProcess::ExitStatus exitStatus)
-    //    {
-    //        qDebug() << "FINI" << exitCode << exitStatus;
-    //    });
-
-    proc->start("java", args, QIODevice::ReadOnly);
-    emit progress("Anonymizing..");
-    if (!proc->waitForStarted()) {
-        emit error(QString("Could not start Java CTP command!"));
-        return;
-    }
-    if (!proc->waitForFinished()) {
-        emit error(QString("Could not run Java CTP command!"));
-        return;
-    }
-
-    QString output = proc->readAll().constData();
-    qDebug().noquote() << output;
-
-    if (proc->exitStatus() == QProcess::CrashExit || proc->exitCode() != 0) {
-        emit error(QString("Anonymization through CTP failed!"));
-        return;
-    }
-    emit finishedAnon();
-}
-
-void Worker::upload(const QString& anon_folder)
+void UploadWorker::uploadFinished(QNetworkReply* reply)
 {
 
-    QDir outFolder = anon_folder != "" ? anon_folder : this->temp_anon_folder();
+    this->nfinished_ += 1;
+    if (reply->error() != QNetworkReply::NoError) {
+        qDebug().noquote() << "* Upload to" << reply->url() << "returned" << reply->error();
+        this->nerror_ += 1;
+    }
+
+    reply->deleteLater();
+
+    if (this->nfinished_ == this->nfiles_) {
+        this->eventLoop_->quit();
+    }
+
+}
+
+void UploadWorker::upload()
+{
+
+    QDir outFolder = this->folder();
 
     int n = this->upload_dcms(outFolder);
     if (this->success()) {
