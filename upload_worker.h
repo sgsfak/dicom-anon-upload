@@ -25,6 +25,7 @@ private:
     const QString patient_id_;
     const QString timepoint_id_;
 
+    QString upload_id_;
     bool completed_;
 
     // Private counters for the upload progress
@@ -44,8 +45,9 @@ public slots:
     void uploadFinished(class QNetworkReply*);
 
 signals:
-    void finished(int images_uploaded);
-    void error(const QString& error);
+    void started(const QString& upload_id);
+    void finished(const QString& upload_id, int images_uploaded);
+    void error(const QString& upload_id, const QString& error);
 
     void uploadProgress1000(int);
 

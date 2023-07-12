@@ -66,7 +66,10 @@ MainWindow::MainWindow(QWidget *parent) :
                     " timepoint TEXT NOT NULL,"
                     " anon_dir TEXT NOT NULL,"
                     " created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                    " uploaded_at DATETIME DEFAULT NULL)");
+                    " error_msg TEXT DEFAULT NULL,"
+                    " upload_id TEXT DEFAULT NULL,"
+                    " upload_started_at DATETIME DEFAULT NULL,"
+                    " upload_finished_at DATETIME DEFAULT NULL)");
         if (db.lastError().type() != QSqlError::NoError) {
             QMessageBox::information(this, "Error", "Cannot open history database at " + dbFile);
         }
@@ -169,10 +172,32 @@ namespace {
 
 
     }
-    void history_update_uploaded(qlonglong history_id)
+    void history_set_upload_start(qlonglong history_id, const QString& upload_id)
     {
         QSqlQuery query{QSqlDatabase::database("history_db")};
-        query.prepare("UPDATE history SET uploaded_at=CURRENT_TIMESTAMP WHERE id=:id");
+        query.prepare("UPDATE history SET upload_id=:upload_id, upload_started_at=CURRENT_TIMESTAMP WHERE id=:id");
+        query.bindValue(":upload_id", upload_id);
+        query.bindValue(":id", history_id);
+        query.exec();
+        if (query.lastError().type() != QSqlError::NoError) {
+            qDebug() << "SQL Error" << query.lastError();
+        }
+    }
+    void history_set_upload_end(qlonglong history_id)
+    {
+        QSqlQuery query{QSqlDatabase::database("history_db")};
+        query.prepare("UPDATE history SET upload_finished_at=CURRENT_TIMESTAMP WHERE id=:id");
+        query.bindValue(":id", history_id);
+        query.exec();
+        if (query.lastError().type() != QSqlError::NoError) {
+            qDebug() << "SQL Error" << query.lastError();
+        }
+    }
+    void history_set_upload_error(qlonglong history_id, const QString& error)
+    {
+        QSqlQuery query{QSqlDatabase::database("history_db")};
+        query.prepare("UPDATE history SET error_msg=:err WHERE id=:id");
+        query.bindValue(":err", error);
         query.bindValue(":id", history_id);
         query.exec();
         if (query.lastError().type() != QSqlError::NoError) {
@@ -227,7 +252,6 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
            QProcess::startDetached(mdicom_path(), QStringList(this->upload_info.anon_folder));
        }
        else if (button == uploadBtn) {
-           this->dlg_->progressBar->setVisible(true);
            this->upload();
        }
     });
@@ -243,7 +267,6 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
         this->dlg_->label->setText("<h2>Anonymization finished!</h2>"
                                    "You can view the anonymized files by pressing the Inspect button or proceed directly to Upload");
         this->dlg_->progressBar->setVisible(false);
-        this->dlg_->progressBar->setRange(0, 1000);
 
         QAbstractButton* inspectBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Help);
         QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
@@ -269,6 +292,8 @@ void MainWindow::upload()
 
     QDialog* w = qobject_cast<QDialog*>(this->dlg_->buttonBox->parent());
 
+    this->dlg_->label->setText("<h2>Preparing upload..</h2>");
+
     QThread* workerThread = new QThread(this);
     UploadWorker* worker = new UploadWorker(this->tokens.access_token,
                                             this->upload_info.anon_folder,
@@ -280,20 +305,28 @@ void MainWindow::upload()
     connect(worker, &UploadWorker::error, worker, &UploadWorker::deleteLater);
 
 
-    connect(worker, &UploadWorker::error, this, [this] (const QString& error) {
-        QMessageBox::warning(this, tr("Failed"), error);
-        //pd->cancel();
+    connect(worker, &UploadWorker::error, this, [this] (const QString& upload_id, const QString& error) {
+        ::history_set_upload_error(this->upload_info.history_id, error);
+        this->dlg_->label->setText(QString("<h2>Error (upload_id: %1)</h2>%2").arg(upload_id, error));
+        this->dlg_->progressBar->setVisible(false);
     });
 
-    connect(worker, &UploadWorker::uploadProgress1000, this, [this](int k) {
+    connect(worker, &UploadWorker::started, this, [this](const QString& upload_id) {
+        ::history_set_upload_start(this->upload_info.history_id, upload_id);
         this->dlg_->label->setText("<h2>Uploading...</h2>");
-        this->dlg_->progressBar->setValue(k);
+        this->dlg_->progressBar->setVisible(true);
+        this->dlg_->progressBar->setRange(0, 1000);
+        this->dlg_->progressBar->setValue(0);
       });
-    connect(worker, &UploadWorker::finished, this, [this](int n) {
+
+    connect(worker, SIGNAL(uploadProgress1000(int)), this->dlg_->progressBar, SLOT(setValue(int)));
+
+    connect(worker, &UploadWorker::finished, this, [this](const QString& upload_id, int n) {
+        Q_UNUSED(upload_id)
         this->dlg_->progressBar->setVisible(false);
         UploadWorker* worker = qobject_cast<UploadWorker*>(QObject::sender());
         if (worker->success()) {
-            ::history_update_uploaded(this->upload_info.history_id);
+            ::history_set_upload_end(this->upload_info.history_id);
             this->dlg_->label->setText(QString("<h2>Upload finished!</h2>"
                                                "%1 file(s) uploaded, you can see them  "
                                                "<a href=\"https://dcm.cardiocare-project.eu/stone-webviewer/index.html?patient=%2\">here</a>.")

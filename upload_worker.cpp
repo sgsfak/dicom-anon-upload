@@ -150,19 +150,23 @@ int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
     }
     catch (HttpException ex) {
         if (ex.status_code == 401) {
-            emit error("Error authenticating with the server, you 'd better reopen the application!");
+            emit error("", "Error authenticating with the server, you 'd better reopen the application!");
         }
         else if (ex.status_code == 0) {
-            emit error("error communicating with the server");
+            emit error("", "error communicating with the server");
         }
         else {
-            emit error(ex.status_description);
+            emit error("", ex.status_description);
         }
         return 0;
     }
 
     QString upload_id = response.object().value("id").toString();
     qDebug() << "upload id" << upload_id;
+
+    this->upload_id_ = upload_id;
+
+    emit started(this->upload_id_);
 
     this->nfiles_ = file_hashes.size();
     this->totalBytes_ = total_bytes;
@@ -185,7 +189,7 @@ int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
 
         QFile* data = new QFile( p.first.absoluteFilePath() );
         if (!data->open(QIODevice::ReadOnly | QIODevice::ExistingOnly)) {
-            emit error("Can't open DICOM file: " + p.first.fileName());
+            emit error(upload_id, "Can't open DICOM file: " + p.first.fileName());
             return 0; // XXX
         }
 
@@ -197,7 +201,7 @@ int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
     }
     this->eventLoop_->exec();
     if (this->nerror_ > 0) {
-        emit error(QString("Error: %1 files failed to be uploaded, better contact admin").arg(this->nerror_));
+        emit error(upload_id, QString("Error: %1 files failed to be uploaded, better contact admin").arg(this->nerror_));
         return 0;
     }
 
@@ -212,13 +216,13 @@ int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
     }
     catch (const HttpException& ex) {
         if (ex.status_code == 401) {
-            emit error("Error authenticating with the server, you 'd better reopen the application!");
+            emit error(this->upload_id_, "Error authenticating with the server, you 'd better reopen the application!");
         }
         else if (ex.status_code == 0) {
-            emit error("Error communicating with the server");
+            emit error(this->upload_id_, "Error communicating with the server");
         }
         else {
-            emit error("Server error:" + ex.status_description);
+            emit error(this->upload_id_, "Server error:" + ex.status_description);
         }
         return 0;
     }
@@ -275,7 +279,7 @@ void UploadWorker::upload()
     int n = this->upload_dcms(outFolder);
     if (this->success()) {
 //        QDir(outFolder).removeRecursively();
-        emit finished(n);
+        emit finished(this->upload_id_, n);
     }
 }
 
