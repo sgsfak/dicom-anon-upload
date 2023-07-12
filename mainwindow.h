@@ -15,6 +15,9 @@ struct current_upload_info {
     QString anon_folder;
     QString patient_id;
     QString timepoint_id;
+    QString timepoint;
+
+    qint64 history_id;
 };
 
 class MainWindow : public QMainWindow
@@ -31,6 +34,8 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragLeaveEvent(QDragLeaveEvent *event) override;
 
+    void start_anonymize(const QString& dirName);
+
 public slots:
     void on_tokens(const token_data& t, const user_info& u);
 
@@ -38,6 +43,8 @@ private slots:
     void on_action_About_triggered();
     void anonymize(const QString& folder, const QString& patId, const QString& tmId, const QString& label);
     void upload();
+
+    void on_action_Open_triggered();
 
 private:
     Ui::MainWindow *ui;

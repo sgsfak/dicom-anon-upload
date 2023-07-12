@@ -20,6 +20,7 @@
 #include <QSqlError>
 #include <QPushButton>
 #include <QProcess>
+#include <QFileDialog>
 
 #include "worker.h"
 #include "upload_worker.h"
@@ -63,8 +64,9 @@ MainWindow::MainWindow(QWidget *parent) :
                     " patient_id TEXT NOT NULL,"
                     " timepoint_id TEXT NOT NULL,"
                     " timepoint TEXT NOT NULL,"
-                    " anon_dir TEXT,"
-                    " uploaded BOOLEAN DEFAULT false)");
+                    " anon_dir TEXT NOT NULL,"
+                    " created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+                    " uploaded_at DATETIME DEFAULT NULL)");
         if (db.lastError().type() != QSqlError::NoError) {
             QMessageBox::information(this, "Error", "Cannot open history database at " + dbFile);
         }
@@ -76,7 +78,7 @@ void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->tokens = tokens;
     QLabel *label = new QLabel(this);
 //    label->setText("Git rev:" STR(APP_REVISION));
-    label->setText(QString("User: %1").arg(user.name));
+    label->setText(QString("Version %1 - User: %2").arg(VERSION, user.name));
     this->statusBar()->addWidget(label);
     this->show();
 }
@@ -100,8 +102,13 @@ void MainWindow::dropEvent(QDropEvent *event)
         return;
     }
 
-
     event->accept();
+    this->start_anonymize(fileName);
+
+}
+
+void MainWindow::start_anonymize(const QString& dirName)
+{
 
     QDialog dlg(this);
     Ui::patientInfo d;
@@ -114,12 +121,13 @@ void MainWindow::dropEvent(QDropEvent *event)
         QString patId = d.patientIDLineEdit->text();
         QString timePointId = d.timepointComboBox->currentData(Qt::UserRole).toString();
         QString timePointAnnotation = d.timepointComboBox->currentText();
-        QTimer::singleShot(0, this, [this, fileName, patId, timePointId, timePointAnnotation]() {
-            this->anonymize(fileName, patId, timePointId, timePointAnnotation);
+        QTimer::singleShot(0, this, [this, dirName, patId, timePointId, timePointAnnotation]() {
+            this->anonymize(dirName, patId, timePointId, timePointAnnotation);
         });
     }
-
 }
+
+
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
     const QMimeData* mimeData = event->mimeData();
@@ -140,11 +148,11 @@ void MainWindow::dragLeaveEvent(QDragLeaveEvent *event)
 }
 
 namespace {
-    qlonglong insert_history(const QString& patient_id, const QString& timepoint_id, const QString& timepoint, const QString& anon_dir)
+    qlonglong history_insert(const QString& patient_id, const QString& timepoint_id, const QString& timepoint, const QString& anon_dir)
     {
         QSqlQuery query{QSqlDatabase::database("history_db")};
-        query.prepare("INSERT INTO history (patient_id, timepoint, anon_dir) "
-                      "VALUES (:patient_id, :timepoint, :anon_dir)");
+        query.prepare("INSERT INTO history (patient_id, timepoint_id, timepoint, anon_dir) "
+                      "VALUES (:patient_id, :timepoint_id, :timepoint, :anon_dir)");
         query.bindValue(":patient_id", patient_id);
         query.bindValue(":timepoint_id", timepoint_id);
         query.bindValue(":timepoint", timepoint);
@@ -161,6 +169,16 @@ namespace {
 
 
     }
+    void history_update_uploaded(qlonglong history_id)
+    {
+        QSqlQuery query{QSqlDatabase::database("history_db")};
+        query.prepare("UPDATE history SET uploaded_at=CURRENT_TIMESTAMP WHERE id=:id");
+        query.bindValue(":id", history_id);
+        query.exec();
+        if (query.lastError().type() != QSqlError::NoError) {
+            qDebug() << "SQL Error" << query.lastError();
+        }
+    }
 }
 void MainWindow::anonymize(const QString &filePath, const QString& patId,
                            const QString& tmId, const QString& label)
@@ -171,10 +189,14 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
     this->upload_info.anon_folder = worker->temp_anon_folder();
     this->upload_info.patient_id = patId;
     this->upload_info.timepoint_id = tmId;
+    this->upload_info.timepoint = label;
+
+
+    this->upload_info.history_id = ::history_insert(this->upload_info.patient_id, this->upload_info.timepoint_id,
+                                                    this->upload_info.timepoint, this->upload_info.anon_folder);
 
     QThread* workerThread = new QThread(this);
     worker->moveToThread(workerThread);
-
 
 
     QDialog* w = new QDialog(this);
@@ -184,6 +206,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
     if (this->dlg_) delete this->dlg_;
     this->dlg_ = new Ui_Dialog();
     this->dlg_->setupUi(w);
+    this->dlg_->label->setText("<h2>Anonymizing..</h2>");
 
     // I am using the following mapping from Roles to Actions:
     //   * Help -> open viewer for the user to inspect the Anonymized DICOM files
@@ -212,12 +235,9 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
     connect(workerThread, &QThread::started, worker, &Worker::anonymize);
     connect(worker, &Worker::error, worker, &Worker::deleteLater);
 
-    connect(worker, &Worker::progress, this, [this](const QString& s) {
-      this->dlg_->label->setText(s);
-    });
-
     connect(worker, &Worker::error, this, [this] (const QString& error) {
-        this->dlg_->label->setText("Error!! <br>" + error);
+        this->dlg_->label->setText("<h2>Error!!</h2>" + error);
+        this->dlg_->progressBar->setVisible(false);
     });
     connect(worker, &Worker::finishedAnon, this, [this]() {
         this->dlg_->label->setText("<h2>Anonymization finished!</h2>"
@@ -239,57 +259,12 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
     w->show();
 
 
-    /*
-
-    auto pd = new QProgressDialog(QObject::tr("Anonymizing .."), nullptr, 0, 1000, this);
-
-    connect(workerThread, &QThread::started, worker, &Worker::anonymize);
-    connect(worker, &Worker::progress, pd, &QProgressDialog::setLabelText);
-    connect(worker, &Worker::uploadProgress1000, pd, &QProgressDialog::setValue);
-
-
-//    connect(worker, &Worker::finishedAnon, worker, &Worker::upload);
-    connect(worker, &Worker::finishedAnon, pd, &QProgressDialog::cancel);
-    connect(worker, &Worker::finishedAnon, workerThread, &QThread::quit);
-
-    connect(worker, &Worker::error, pd, &QProgressDialog::cancel);
-    connect(worker, &Worker::error, worker, &Worker::deleteLater);
-
-    connect(worker, &Worker::finished, workerThread, &QThread::quit);
-    connect(worker, &Worker::finished, this->pd_, &QProgressDialog::cancel);
-
-    // automatically delete thread and task object when work is done:
-    connect(worker, &Worker::finished, worker, &Worker::deleteLater);
-
-    connect(worker, &Worker::finished, this, [this, worker] (int n) {
-            if (worker->success()) {
-                ::insert_history(worker->patient_id(), worker->timepoint_id(), worker->timepoint(), worker->temp_anon_folder());
-                QMessageBox::information(this, tr("Finished"),
-                                         QString("Success: %1 DICOM images uploaded!").arg(n));
-            }
-
-        }
-    );
-
-    connect(worker, &Worker::error, this, [this] (const QString& error) {
-        QMessageBox::warning(this, tr("Failed"), error);
-        //pd->cancel();
-    });
-    */
-
     workerThread->start();
-//    pd->exec();
-//    int k = worker->
-//    auto mesgBox = new QMessageBox("Anon")
-//    QMessageBox::information(this, "Anonymization result", true? "OK" : "Error");
-//    qDebug() << QThread::currentThread();
-//    this->upload(anon_folder, patId, tmId);
 
 }
 
 void MainWindow::upload()
 {
-//    auto pd = new QProgressDialog(QObject::tr("Uploading .."), nullptr, 0, 1000, this);
 
 
     QDialog* w = qobject_cast<QDialog*>(this->dlg_->buttonBox->parent());
@@ -300,8 +275,6 @@ void MainWindow::upload()
                                             this->upload_info.patient_id,
                                             this->upload_info.timepoint_id);
     worker->moveToThread(workerThread);
-
-//    worker->upload();
 
     connect(workerThread, &QThread::started, worker, &UploadWorker::upload);
     connect(worker, &UploadWorker::error, worker, &UploadWorker::deleteLater);
@@ -316,52 +289,26 @@ void MainWindow::upload()
         this->dlg_->label->setText("<h2>Uploading...</h2>");
         this->dlg_->progressBar->setValue(k);
       });
-    connect(worker, &UploadWorker::finished, this, [this]() {
+    connect(worker, &UploadWorker::finished, this, [this](int n) {
         this->dlg_->progressBar->setVisible(false);
-        this->dlg_->label->setText(QString("<h2>Upload finished!</h2>"
-                                           "You can view the uploaded files "
-                                           "<a href=\"https://dcm.cardiocare-project.eu/stone-webviewer/index.html?patient=%1\">here</a>.")
-                                   .arg(this->upload_info.patient_id));
-        QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
-        uploadBtn->setEnabled(false);
-        this->dlg_->buttonBox->button(QDialogButtonBox::Cancel)->setText("OK");
+        UploadWorker* worker = qobject_cast<UploadWorker*>(QObject::sender());
+        if (worker->success()) {
+            ::history_update_uploaded(this->upload_info.history_id);
+            this->dlg_->label->setText(QString("<h2>Upload finished!</h2>"
+                                               "%1 file(s) uploaded, you can see them  "
+                                               "<a href=\"https://dcm.cardiocare-project.eu/stone-webviewer/index.html?patient=%2\">here</a>.")
+                                       .arg(n)
+                                       .arg(this->upload_info.patient_id));
+            QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
+            uploadBtn->setEnabled(false);
+            this->dlg_->buttonBox->button(QDialogButtonBox::Cancel)->setText("OK");
+        }
       });
 
     connect(w, &QDialog::finished, workerThread, &QThread::quit);
     connect(w, &QDialog::finished, &Worker::deleteLater);
 
-    /*
-
-    connect(workerThread, &QThread::started, worker, &UploadWorker::upload);
-//    connect(worker, &Worker::progress, this->pd_, &QProgressDialog::setLabelText);
-    connect(worker, &UploadWorker::uploadProgress1000, pd, &QProgressDialog::setValue);
-
-    connect(worker, &UploadWorker::finished, workerThread, &QThread::quit);
-    connect(worker, &UploadWorker::finished, pd, &QProgressDialog::cancel);
-    connect(worker, &UploadWorker::error, pd, &QProgressDialog::cancel);
-
-    // automatically delete thread and task object when work is done:
-    connect(worker, &UploadWorker::finished, worker, &Worker::deleteLater);
-    connect(worker, &UploadWorker::error, worker, &Worker::deleteLater);
-
-    connect(worker, &UploadWorker::finished, this, [this, worker] (int n) {
-            if (worker->success()) {
-//                ::insert_history(worker->patient_id(), worker->timepoint_id(), worker->timepoint(), worker->temp_anon_folder());
-                QMessageBox::information(this, tr("Finished"),
-                                         QString("Success: %1 DICOM images uploaded!").arg(n));
-            }
-
-        }
-    );
-
-    connect(worker, &UploadWorker::error, this, [this] (const QString& error) {
-        QMessageBox::warning(this, tr("Failed"), error);
-        //pd->cancel();
-    });
-    */
-
     workerThread->start();
-//    pd->exec();
 }
 
 MainWindow::~MainWindow()
@@ -375,5 +322,12 @@ void MainWindow::on_action_About_triggered()
                              "<h1>Cardiocare DICOM Upload tool</h1>"
                              "Version: " VERSION "<br>"
                              "&copy; FORTH-ICS, 2023");
+}
+
+
+void MainWindow::on_action_Open_triggered()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Open DICOM folder"), "", QFileDialog::ShowDirsOnly);
+    this->start_anonymize(dir);
 }
 

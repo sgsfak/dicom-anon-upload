@@ -20,45 +20,22 @@ public:
     Worker(const QString &filePath, const QString& patId, const QString& timepointId,
            const QString& timepointDesc, const QString& token);
 
-    bool success() const { return this->completed_ && this->nerror_ == 0; }
 
     QString patient_id() const { return this->patId_; }
     QString timepoint_id() const { return this->timePointId_; }
     QString timepoint() const { return this->timePointDescr_; }
 
     QString temp_anon_folder() const;
-    
-private:
-    int zipFolder(const class QDir&, const QString&, const QString&);
-    int upload_dcms(const class QDir&);
 
 private:
-    bool completed_;
-
-    // Private counters for the upload progress
-
-    qint64 totalBytes_; // the total size of the DICOMs to upload
-    int nfiles_; // the total number of DICOMs to upload
-    int nfinished_; // the total number of DICOMs finished uploading
-    int nerror_; // the total number of DICOMs that failed to upload
-
-    std::unordered_map<QString, qint64> uploaded_bytes_per_file_;
 
     class QEventLoop* eventLoop_;
 public slots:
     void anonymize();
-    void upload(const QString& anon_folder="");
-
-    void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
-    void uploadFinished(class QNetworkReply*);
 
 signals:
-    void finishedAnon();
-
-    void finished(int images_uploaded);
     void error(const QString& error);
-    void progress(const QString&);
-    void uploadProgress1000(int);
+    void finishedAnon();
 };
 
 #endif // WORKER_H

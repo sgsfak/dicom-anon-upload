@@ -111,7 +111,7 @@
  <e en="F" n="StationName" t="00081010">@remove()</e>
  <e en="T" n="StudyDescription" t="00081030">@keep()</e>
  <e en="F" n="ProcedureCodeSeq" t="00081032">@remove()</e>
- <e en="T" n="SeriesDescription" t="0008103E">@keep()</e>
+ <e en="T" n="SeriesDescription" t="0008103E">@always()@param(@TIMEPOINTDESCR) - @value(SeriesDescription)</e>
  <e en="F" n="SeriesDescriptionCodeSeq" t="0008103F">@remove()</e>
  <e en="F" n="InstitutionalDepartmentName" t="00081040">@remove()</e>
  <e en="F" n="InstitutionalDepartmentTypeCodeSeq" t="00081041">@remove()</e>
