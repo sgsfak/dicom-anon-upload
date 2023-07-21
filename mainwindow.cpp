@@ -27,10 +27,10 @@
 #include "ui_progress_dialog.h"
 #include "utils.h"
 
-#define VERSION "0.8.0"
-
 #define _STR(X) #X
 #define STR(X) _STR(X)
+
+#define VERSION STR(APP_VERSION)
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -79,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->tokens = tokens;
+    this->user = user;
     QLabel *label = new QLabel(this);
 //    label->setText("Git rev:" STR(APP_REVISION));
     label->setText(QString("Version %1 - User: %2").arg(VERSION, user.name));
@@ -110,6 +111,32 @@ void MainWindow::dropEvent(QDropEvent *event)
 
 }
 
+bool MainWindow::patientid_valid(const QString &patientId) const
+{
+    // Ids should conform to the following syntax:
+    // <digit> <digit> "-" <digit> <digit>*
+
+    QRegularExpression re("\\d\\d-\\d+");
+    if (!re.match(patientId).hasMatch()) {
+        return false;
+    }
+
+    // we check the groups the user belongs to, and see whether
+    // the given patient id is compatible with the corresponding
+    // prefix:
+    QString prefix = patientId.left(2);
+    for(QString cc: this->user.groups) {
+        if (!cc.startsWith("CC")) continue;
+        else if (cc == "CC_TEST" && prefix == "00") return true;
+        else if (cc == "CC_BOCOC" && prefix == "01") return true;
+        else if (cc == "CC_IEO" && prefix == "02") return true;
+        else if (cc == "CC_IOL" && prefix == "03") return true;
+        else if (cc == "CC_KSBC" && prefix == "04") return true;
+        else if (cc == "CC_NKUA" && prefix == "05") return true;
+        else if (cc == "CC_UOI" && prefix == "06") return true;
+    }
+    return false;
+}
 void MainWindow::start_anonymize(const QString& dirName)
 {
 
@@ -124,9 +151,18 @@ void MainWindow::start_anonymize(const QString& dirName)
         QString patId = d.patientIDLineEdit->text();
         QString timePointId = d.timepointComboBox->currentData(Qt::UserRole).toString();
         QString timePointAnnotation = d.timepointComboBox->currentText();
-        QTimer::singleShot(0, this, [this, dirName, patId, timePointId, timePointAnnotation]() {
-            this->anonymize(dirName, patId, timePointId, timePointAnnotation);
-        });
+
+        // Check the given patient id:
+        if (!this->patientid_valid(patId)) {
+            QMessageBox::critical(this,
+                                  "Error",
+                                  QString("The given patient id: '%1' does not appear to"
+                                          " be valid for your clinical center!").arg(patId));
+        }
+        else
+            QTimer::singleShot(0, this, [this, dirName, patId, timePointId, timePointAnnotation]() {
+                this->anonymize(dirName, patId, timePointId, timePointAnnotation);
+            });
     }
 }
 
@@ -329,7 +365,7 @@ void MainWindow::upload()
             ::history_set_upload_end(this->upload_info.history_id);
             this->dlg_->label->setText(QString("<h2>Upload finished!</h2>"
                                                "%1 file(s) uploaded, you can see them  "
-                                               "<a href=\"https://dcm.cardiocare-project.eu/stone-webviewer/index.html?patient=%2\">here</a>.")
+                                               "<a href=\"https://dcm.cardiocare-project.eu/annotator/patient/%2\">here</a>.")
                                        .arg(n)
                                        .arg(this->upload_info.patient_id));
             QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);

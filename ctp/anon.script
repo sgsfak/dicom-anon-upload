@@ -46,7 +46,7 @@
  <e en="F" n="SOPClassesInStudy" t="00080062">@remove()</e>
  <e en="F" n="AnatomicRegionsInStudyCodeSeq" t="00080063">@remove()</e>
  <e en="F" n="ConversionType" t="00080064">@remove()</e>
- <e en="F" n="PresentationIntentType" t="00080068">@remove()</e>
+ <e en="F" n="PresentationIntentType" t="00080068">@keep()</e>
  <e en="T" n="Manufacturer" t="00080070">@keep()</e>
  <e en="T" n="InstitutionName" t="00080080">@always()@param(@SITEID)</e>
  <e en="F" n="InstitutionAddress" t="00080081">@remove()</e>

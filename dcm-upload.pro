@@ -1,6 +1,6 @@
 REVISION = $$system(git rev-parse --short HEAD)
 DEFINES += APP_REVISION=$$REVISION
-VERSION = 0.5.0
+VERSION = 0.10.1
 DEFINES += APP_VERSION=$$VERSION
 
 QT       += core gui network sql

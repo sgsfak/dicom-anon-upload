@@ -9,6 +9,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonDocument>
+#include <algorithm>
 
 #include "mainwindow.h"
 
@@ -170,13 +171,17 @@ void LoginWindow::on_userinfo_finished(QNetworkReply* reply)
     }
 
     QByteArray result = reply->readAll();
+    qDebug().noquote() << "UserInfo:" << QString(result);
     QJsonObject json = QJsonDocument::fromJson(result).object();
     this->user_.user_id = json.value("sub").toString();
     this->user_.name = json.value("name").toString();
 
-    emit this->tokens(this->tokens_, this->user_);
+    QJsonArray json_array = json.value("groups").toArray();
+    for(QJsonValue v: json_array) {
+        this->user_.groups.push_back(v.toString());
+    }
 
-    qDebug().noquote() << "Got user:" << this->user_.name;
+    emit this->tokens(this->tokens_, this->user_);
 
     this->hide();
 }

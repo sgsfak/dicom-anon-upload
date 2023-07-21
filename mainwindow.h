@@ -35,6 +35,7 @@ protected:
     void dragLeaveEvent(QDragLeaveEvent *event) override;
 
     void start_anonymize(const QString& dirName);
+    bool patientid_valid(const QString& patientId) const;
 
 public slots:
     void on_tokens(const token_data& t, const user_info& u);
@@ -53,6 +54,7 @@ private:
     current_upload_info upload_info;
 
     token_data tokens;
+    user_info user;
     QString style;
 
     std::vector<QPair<QString, QString>> timepoints_;

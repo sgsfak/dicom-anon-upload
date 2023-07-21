@@ -1,6 +1,7 @@
 #ifndef TOKEN_DATA_H
 #define TOKEN_DATA_H
 #include <QString>
+#include <vector>
 
 struct token_data {
     QString access_token;
@@ -12,6 +13,7 @@ struct token_data {
 struct user_info {
     QString user_id;
     QString name;
+    std::vector<QString> groups;
 };
 
 #endif // TOKEN_DATA_H
