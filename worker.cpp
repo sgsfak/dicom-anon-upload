@@ -91,8 +91,9 @@ void Worker::anonymize() {
         emit error(QString("Could not start Java CTP command!"));
         return;
     }
-    if (!proc->waitForFinished()) {
-        emit error(QString("Could not run Java CTP command!"));
+    proc->waitForFinished(-1);
+    if (proc->exitStatus() != QProcess::NormalExit) {
+        emit error(QString("Java CTP command crashed!"));
         return;
     }
 

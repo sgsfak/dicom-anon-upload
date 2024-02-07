@@ -60,6 +60,7 @@ void LoginWindow::do_login(const QString& username, const QString& passwd)
         QString client_secret = q.value(1).toString();
         QNetworkRequest request;
         request.setUrl(QUrl(this->host_ + "/token/"));
+        qDebug() << "LOGIN: sending to" << this->host_;
         request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
 
         QNetworkAccessManager *qnam = new QNetworkAccessManager(this);

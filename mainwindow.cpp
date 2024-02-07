@@ -365,7 +365,7 @@ void MainWindow::upload()
             ::history_set_upload_end(this->upload_info.history_id);
             this->dlg_->label->setText(QString("<h2>Upload finished!</h2>"
                                                "%1 file(s) uploaded, you can see them  "
-                                               "<a href=\"https://dcm.cardiocare-project.eu/annotator/patient/%2\">here</a>.")
+                                               "<a href=\"https://dcm.cardiocare-project.eu/repo/patient/%2\">here</a>.")
                                        .arg(n)
                                        .arg(this->upload_info.patient_id));
             QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
