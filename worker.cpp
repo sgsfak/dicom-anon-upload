@@ -53,7 +53,7 @@ void Worker::anonymize() {
     if (k == -1) {
         k = 0;
     }
-    QString siteId = "Cardiocare-" + this->patId_.left(k);
+    QString siteId = "EUCAIM local -" + this->patId_.left(k);
 
     // Use the Clinical trial attributes to pass the "time point" related annotation:
     // https://dicom.nema.org/medical/Dicom/2016b/output/chtml/part03/sect_C.7.2.3.html#sect_C.7.2.3.1.1

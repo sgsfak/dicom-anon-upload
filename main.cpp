@@ -1,4 +1,4 @@
-#include "loginwindow.h"
+#include "ui_eucaimwelcome.h"
 #include "mainwindow.h"
 #include "utils.h"
 
@@ -14,13 +14,9 @@
 int main(int argc, char *argv[])
 {
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
-    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
-
     QApplication a(argc, argv);
-    a.setWindowIcon(QIcon(":/cardiocare-logo.ico"));
-
+    a.setWindowIcon(QIcon(":/eucaim.png"));
+#if 0
     qDebug() << "SSL Build Version:" << QSslSocket::sslLibraryBuildVersionString();
     QString certsPath = a.applicationDirPath() + "/certs/";
     std::cout << "looking at " << certsPath.toStdString() << " for any PEM certificate" << std::endl;
@@ -40,15 +36,18 @@ int main(int argc, char *argv[])
             }
         }
     }
+#endif
 
-    QFileInfo mdicom_exe {mdicom_path()};
-    if (!mdicom_exe.exists() || !mdicom_exe.isFile() || !mdicom_exe.isExecutable()) {
-        QMessageBox::information(nullptr, "mDicom.exe missing",
-                                 "Installation of MicroDicom cannot be found"
-                                 " so viewing of DICOM files is not supported. <br>If you want it, "
-                                 " you can download its installer from <a href='https://www.microdicom.com/downloads.html'>here</>.");
-    }
+    // QFileInfo mdicom_exe {mdicom_path()};
+    // if (!mdicom_exe.exists() || !mdicom_exe.isFile() || !mdicom_exe.isExecutable()) {
+    //     QMessageBox::information(nullptr, "mDicom.exe missing",
+    //                              "Installation of MicroDicom cannot be found"
+    //                              " so viewing of DICOM files is not supported. <br>If you want it, "
+    //                              " you can download its installer from <a href='https://www.microdicom.com/downloads.html'>here</>.",
+    //                              QMessageBox::Ok);
+    // }
 
+#if 0
     LoginWindow* w = new LoginWindow;
     w->show();
     QObject::connect(w, &LoginWindow::tokens, w, [w](const token_data& tokens, const user_info& user) {
@@ -59,5 +58,25 @@ int main(int argc, char *argv[])
         w->close();
         w->deleteLater();
     });
+#else
+
+    QDialog* dlg = new QDialog();
+    Ui::WelcomeWindow* d = new Ui::WelcomeWindow;
+    d->setupUi(dlg);
+    QObject::connect(d->buttonBox, SIGNAL(accepted()), dlg, SLOT(accept()));
+
+    MainWindow* mw = new MainWindow;
+    QObject::connect(dlg, &QDialog::accepted, mw, [mw]() {
+        mw->show();
+        mw->raise();
+    });
+    // if (dlg->exec() == QDialog::Accepted) {
+    //     MainWindow* mw = new MainWindow;
+    //     // mw->on_tokens(tokens, user);
+    //     mw->show();
+    //     mw->raise();
+    // }
+    dlg->show();
     return a.exec();
+#endif
 }

@@ -17,8 +17,8 @@ CONFIG += sdk_no_version_check
 DEFINES += QT_DEPRECATED_WARNINGS
 
 macx {
-INCLUDEPATH += "/usr/local/Cellar/libzip/1.9.2/include"
-QMAKE_LFLAGS += "-L/usr/local/Cellar/libzip/1.9.2/lib -lzip"
+INCLUDEPATH += "/usr/local/Cellar/libzip/1.10.1/include"
+QMAKE_LFLAGS += "-L/usr/local/Cellar/libzip/1.10.1/lib -lzip"
 }
 
 #win32 {
@@ -63,6 +63,7 @@ HEADERS += \
     xxhash/xxhash.h
 
 FORMS += \
+    eucaimwelcome.ui \
     historyform.ui \
     loginwindow.ui \
     mainwindow.ui \
@@ -79,8 +80,8 @@ DISTFILES +=
 RESOURCES += \
     resources.qrc
 
-RC_ICONS = cardiocare-logo.ico
-ICON = cardiocare-logo.icns
+RC_ICONS = eucaim.ico
+ICON = eucaim.icns
 
 win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibcrypto_static
 

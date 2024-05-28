@@ -4,6 +4,7 @@
 #include "ui_patientinfo.h"
 
 #include <QDebug>
+#include <QDesktopServices>
 #include <QDragEnterEvent>
 #include <QDrag>
 #include <QDropEvent>
@@ -22,6 +23,7 @@
 #include <QPushButton>
 #include <QProcess>
 #include <QFileDialog>
+#include <QUuid>
 
 #include "worker.h"
 #include "upload_worker.h"
@@ -55,7 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setAcceptDrops(true);
     this->style = this->styleSheet();
 
-    // this->setWindowTitle("EUCAIM DICOM Anonymizer");
+    this->setWindowTitle("EUCAIM DICOM Anonymizer");
 
     QSqlQuery q;
     q.prepare("SELECT id, descr FROM timepoints");
@@ -129,6 +131,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 
 bool MainWindow::patientid_valid(const QString &patientId) const
 {
+#if 0
     // Ids should conform to the following syntax:
     // <digit> <digit> "-" <digit> <digit>*
 
@@ -152,10 +155,14 @@ bool MainWindow::patientid_valid(const QString &patientId) const
         else if (cc == "CC_UOI" && prefix == "06") return true;
     }
     return false;
+#else
+    return true;
+#endif
 }
 void MainWindow::start_anonymize(const QString& dirName)
 {
 
+#if 0
     QDialog dlg(this);
     Ui::patientInfo d;
     d.setupUi(&dlg);
@@ -180,6 +187,14 @@ void MainWindow::start_anonymize(const QString& dirName)
                 this->anonymize(dirName, patId, timePointId, timePointAnnotation);
             });
     }
+#else
+    QString patId = QString("00-%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
+    QString timePointId = "";
+    QString timePointAnnotation = "";
+    QTimer::singleShot(0, this, [this, dirName, patId, timePointId, timePointAnnotation]() {
+        this->anonymize(dirName, patId, timePointId, timePointAnnotation);
+    });
+#endif
 }
 
 
@@ -295,7 +310,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
 
 
     this->dlg_->buttonBox->button(QDialogButtonBox::Help)->setText("Inspect");
-    this->dlg_->buttonBox->button(QDialogButtonBox::Apply)->setText("Upload");
+    this->dlg_->buttonBox->button(QDialogButtonBox::Apply)->setText("Open folder");
     connect(this->dlg_->buttonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton* button){
         QAbstractButton* inspectBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Help);
         QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
@@ -304,7 +319,11 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
            QProcess::startDetached(mdicom_path(), QStringList(this->upload_info.anon_folder));
        }
        else if (button == uploadBtn) {
+#if 0
            this->upload();
+#else
+           QDesktopServices::openUrl(QString("file:%1").arg(this->upload_info.anon_folder));
+#endif
        }
     });
 

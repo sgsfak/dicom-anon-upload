@@ -1,8 +1,9 @@
 <RCC>
     <qresource prefix="/">
-        <file>panacea.png</file>
-        <file>cardiocare-logo2.png</file>
-        <file>cardiocare-logo.ico</file>
         <file>upload.png</file>
+        <file>EUCAIM-logo.png</file>
+        <file>eucaim.ico</file>
+        <file>eucaim.icns</file>
+        <file>eucaim.png</file>
     </qresource>
 </RCC>

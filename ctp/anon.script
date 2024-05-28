@@ -309,7 +309,7 @@
  <e en="F" n="LongitudinalTemporalEventType" t="00120053"></e>
  <e en="F" n="CoordinatingCenterName" t="00120060">@empty()</e>
  <e en="T" n="PatientIdentityRemoved" t="00120062">YES</e>
- <e en="T" n="DeIdentificationMethod" t="00120063">@always()@append(){Cardiocare Deidentification : @date():@time()}</e>
+ <e en="T" n="DeIdentificationMethod" t="00120063">@always()@append(){EUCAIM Deidentification : @date():@time()}</e>
  <e en="T" n="DeIdentificationMethodCodeSeq" t="00120064">113100/113107/113108</e>
  <e en="F" n="ClinicalTrialSeriesID" t="00120071">@remove()</e>
  <e en="F" n="ClinicalTrialSeriesDescription" t="00120072">@remove()</e>
@@ -693,7 +693,7 @@
  <e en="T" n="SoftwareVersion" t="00181020">@keep()</e>
  <e en="F" n="VideoImageFormatAcquired" t="00181022"></e>
  <e en="F" n="DigitalImageFormatAcquired" t="00181023"></e>
- <e en="T" n="ProtocolName" t="00181030">@param(Cardiocare)</e>
+ <e en="T" n="ProtocolName" t="00181030">@param(EUCAIM)</e>
  <e en="F" n="ContrastBolusRoute" t="00181040"></e>
  <e en="F" n="ContrastBolusVolume" t="00181041"></e>
  <e en="F" n="ContrastBolusStartTime" t="00181042"></e>
