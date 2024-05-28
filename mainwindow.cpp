@@ -7,6 +7,7 @@
 #include <QDragEnterEvent>
 #include <QDrag>
 #include <QDropEvent>
+#include <QFile>
 #include <QMimeData>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -31,6 +32,18 @@
 #define STR(X) _STR(X)
 
 #define VERSION STR(APP_VERSION)
+#define CTP_URL "https://mircwiki.rsna.org/index.php?title=The_CTP_DICOM_Anonymizer"
+
+static int qfile_create_if_needed(const QString& filename)
+{
+
+    QFile file(filename);
+    if (file.exists())
+        return 0;
+    file.open(QIODevice::WriteOnly);
+    file.close();
+    return 1;
+}
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -42,6 +55,8 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setAcceptDrops(true);
     this->style = this->styleSheet();
 
+    // this->setWindowTitle("EUCAIM DICOM Anonymizer");
+
     QSqlQuery q;
     q.prepare("SELECT id, descr FROM timepoints");
     q.exec();
@@ -52,24 +67,25 @@ MainWindow::MainWindow(QWidget *parent) :
     // Open the history db, where we store the uploads etc:
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "history_db");
     QString dbFile = qApp->applicationDirPath() + "/history.sqlite";
+    ::qfile_create_if_needed(dbFile);
     db.setDatabaseName( dbFile );
     qDebug() << "Opening DB at" << dbFile;
     if (!db.open()) {
         QMessageBox::information(this, "Login", "Cannot open database at " + dbFile);
     }
     else {
-        QSqlQuery q = db.exec(
-                    "CREATE TABLE IF NOT EXISTS history("
-                    " id INTEGER PRIMARY KEY,"
-                    " patient_id TEXT NOT NULL,"
-                    " timepoint_id TEXT NOT NULL,"
-                    " timepoint TEXT NOT NULL,"
-                    " anon_dir TEXT NOT NULL,"
-                    " created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-                    " error_msg TEXT DEFAULT NULL,"
-                    " upload_id TEXT DEFAULT NULL,"
-                    " upload_started_at DATETIME DEFAULT NULL,"
-                    " upload_finished_at DATETIME DEFAULT NULL)");
+        QSqlQuery q{db};
+        q.exec("CREATE TABLE IF NOT EXISTS history("
+               " id INTEGER PRIMARY KEY,"
+               " patient_id TEXT NOT NULL,"
+               " timepoint_id TEXT NOT NULL,"
+               " timepoint TEXT NOT NULL,"
+               " anon_dir TEXT NOT NULL,"
+               " created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+               " error_msg TEXT DEFAULT NULL,"
+               " upload_id TEXT DEFAULT NULL,"
+               " upload_started_at DATETIME DEFAULT NULL,"
+               " upload_finished_at DATETIME DEFAULT NULL)");
         if (db.lastError().type() != QSqlError::NoError) {
             QMessageBox::information(this, "Error", "Cannot open history database at " + dbFile);
         }
@@ -81,7 +97,7 @@ void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->tokens = tokens;
     this->user = user;
     QLabel *label = new QLabel(this);
-//    label->setText("Git rev:" STR(APP_REVISION));
+    // label->setText("Git rev:" STR(APP_REVISION));
     label->setText(QString("Version %1 - User: %2").arg(VERSION, user.name));
     this->statusBar()->addWidget(label);
     this->show();
@@ -116,7 +132,7 @@ bool MainWindow::patientid_valid(const QString &patientId) const
     // Ids should conform to the following syntax:
     // <digit> <digit> "-" <digit> <digit>*
 
-    QRegularExpression re("\\d\\d-\\d+");
+    static QRegularExpression re{"\\d\\d-\\d+"};
     if (!re.match(patientId).hasMatch()) {
         return false;
     }
@@ -125,7 +141,7 @@ bool MainWindow::patientid_valid(const QString &patientId) const
     // the given patient id is compatible with the corresponding
     // prefix:
     QString prefix = patientId.left(2);
-    for(QString cc: this->user.groups) {
+    for(const QString& cc: this->user.groups) {
         if (!cc.startsWith("CC")) continue;
         else if (cc == "CC_TEST" && prefix == "00") return true;
         else if (cc == "CC_BOCOC" && prefix == "01") return true;
@@ -388,9 +404,10 @@ MainWindow::~MainWindow()
 void MainWindow::on_action_About_triggered()
 {
     QMessageBox::information(this, "About DICOM Upload Tool",
-                             "<h1>Cardiocare DICOM Upload tool</h1>"
+                             "<h1>DICOM Upload tool</h1>"
                              "Version: " VERSION "<br>"
-                             "&copy; FORTH-ICS, 2023");
+                             "&copy; FORTH-ICS, 2023 <br><br>"
+                             "This tool uses the <a href='" CTP_URL "'>RSNA CTP anonymizer</a>");
 }
 
 

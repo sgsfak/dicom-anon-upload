@@ -13,7 +13,7 @@ HistoryForm::~HistoryForm()
     delete ui;
 }
 
-void HistoryForm::on_historyTable_itemDoubleClicked(QTableWidgetItem *item)
+void HistoryForm::on_historyTable_itemDoubleClicked(QTableWidgetItem *)
 {
 
 }
