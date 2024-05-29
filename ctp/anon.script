@@ -1,7 +1,6 @@
 <script>
  <p t="SITEID">5b513bc6-824a-4678-9420-a46d9f50833f</p>
  <p t="UIDROOT">1.2.826.0.1.3680043.10.1226.1</p>
- <p t="PATIENTID">1</p>
  <p t="TIMEPOINTID">T1</p>
  <p t="TIMEPOINTDESCR">initial</p>
  <e en="F" n="LengthToEndRetired" t="00080001">@remove()</e>
@@ -220,8 +219,8 @@
  <e en="F" n="FrameDisplaySeq" t="00089458">@remove()</e>
  <e en="F" n="RecommendedDisplayFrameRateInFloat" t="00089459">@remove()</e>
  <e en="F" n="SkipFrameRangeFlag" t="00089460">@remove()</e>
- <e en="T" n="PatientName" t="00100010">@param(@PATIENTID)</e>
- <e en="T" n="PatientID" t="00100020">@param(@PATIENTID)</e>
+ <e en="T" n="PatientName" t="00100010">@param(ECI-)@hashptid(@SITEID,PatientID)</e>
+ <e en="T" n="PatientID" t="00100020">@param(ECI-)@hashptid(@SITEID,this)</e>
  <e en="F" n="IssuerOfPatientID" t="00100021">@remove()</e>
  <e en="F" n="TypeOfPatientID" t="00100022">@remove()</e>
  <e en="F" n="IssuerOfPatientIDQualifiersSeq" t="00100024">@remove()</e>
@@ -693,7 +692,7 @@
  <e en="T" n="SoftwareVersion" t="00181020">@keep()</e>
  <e en="F" n="VideoImageFormatAcquired" t="00181022"></e>
  <e en="F" n="DigitalImageFormatAcquired" t="00181023"></e>
- <e en="T" n="ProtocolName" t="00181030">@param(EUCAIM)</e>
+ <e en="T" n="ProtocolName" t="00181030">@param(EUCAIM protocol)</e>
  <e en="F" n="ContrastBolusRoute" t="00181040"></e>
  <e en="F" n="ContrastBolusVolume" t="00181041"></e>
  <e en="F" n="ContrastBolusStartTime" t="00181042"></e>
@@ -1071,7 +1070,7 @@
  <e en="F" n="ChemicalShiftSeq" t="00189084"></e>
  <e en="F" n="CardiacSignalSource" t="00189085"></e>
  <e en="T" n="DiffusionBValue" t="00189087">@keep()</e>
- <e en="F" n="DiffusionGradientOrientation" t="00189089"></e>
+ <e en="T" n="DiffusionGradientOrientation" t="00189089">@keep()</e>
  <e en="F" n="VelocityEncodingDirection" t="00189090"></e>
  <e en="F" n="VelocityEncodingMinimumValue" t="00189091"></e>
  <e en="F" n="VelocityEncodingAcquisitionSeq" t="00189092"></e>
@@ -1468,6 +1467,8 @@
  <e en="F" n="ContributingEquipmentSeq" t="0018A001"></e>
  <e en="F" n="ContributionDateTime" t="0018A002"></e>
  <e en="F" n="ContributionDescription" t="0018A003">@remove()</e>
+ <e en="T" n="DiffusionBValue" t="0019100C">@keep()</e>
+ <e en="T" n="DiffusionDirectionality" t="0019100D">@keep()</e>
  <e en="T" n="StudyInstanceUID" t="0020000D">@hashuid(@UIDROOT,this)</e>
  <e en="T" n="SeriesInstanceUID" t="0020000E">@hashuid(@UIDROOT,this)</e>
  <e en="T" n="StudyID" t="00200010">@empty()</e>
@@ -1946,8 +1947,8 @@
  <e en="F" n="PixelIntensityRelationshipSign" t="00281041"></e>
  <e en="T" n="WindowCenter" t="00281050">@keep()</e>
  <e en="T" n="WindowWidth" t="00281051">@keep()</e>
- <e en="F" n="RescaleIntercept" t="00281052"></e>
- <e en="F" n="RescaleSlope" t="00281053"></e>
+ <e en="T" n="RescaleIntercept" t="00281052">@keep()</e>
+ <e en="T" n="RescaleSlope" t="00281053">@keep()</e>
  <e en="F" n="RescaleType" t="00281054"></e>
  <e en="F" n="WindowCenterWidthExplanation" t="00281055"></e>
  <e en="F" n="VOILUTFunction" t="00281056"></e>
@@ -2397,8 +2398,8 @@
  <e en="F" n="DoubleFloatRealWorldValueFirstValueMapped" t="00409214">@remove()</e>
  <e en="F" n="RealWorldValueFirstValueMappedUS" t="00409216">@remove()</e>
  <e en="F" n="QuantityDefinitionSeq" t="00409220">@remove()</e>
- <e en="F" n="RealWorldValueIntercept" t="00409224">@remove()</e>
- <e en="F" n="RealWorldValueSlope" t="00409225">@remove()</e>
+ <e en="T" n="RealWorldValueIntercept" t="00409224">@keep()</e>
+ <e en="T" n="RealWorldValueSlope" t="00409225">@keep()</e>
  <e en="F" n="FindingsFlagTrial" t="0040A007">@remove()</e>
  <e en="F" n="RelationshipType" t="0040A010">@remove()</e>
  <e en="F" n="FindingsSequenceTrial" t="0040A020">@remove()</e>
@@ -2535,6 +2536,8 @@
  <e en="F" n="SourceInstanceSeq" t="00420013">@remove()</e>
  <e en="F" n="ListOfMIMETypes" t="00420014">@remove()</e>
  <e en="F" n="EncapsulatedDocumentLength" t="00420015">@remove()</e>
+ <e en="T" n="VasCollapseFlag" t="00431030">@keep()</e>
+ <e en="T" n="SlopInt6SlopInt9" t="00431039">@keep()</e>
  <e en="F" n="ProductPackageIdentifier" t="00440001">@remove()</e>
  <e en="F" n="SubstanceAdministrationApproval" t="00440002">@remove()</e>
  <e en="F" n="ApprovalStatusFurtherDescription" t="00440003">@remove()</e>
@@ -3503,6 +3506,8 @@
  <e en="F" n="SupportedImageDisplayFormatsSeq" t="200000A8">@remove()</e>
  <e en="F" n="RefFilmBoxSeq" t="20000500">@remove()</e>
  <e en="F" n="RefStoredPrintSeq" t="20000510">@remove()</e>
+ <e en="T" n="PrivateScaleIntercept" t="2005100D">@keep()</e>
+ <e en="T" n="PrivateScaleSlope" t="2005100E">@keep()</e>
  <e en="F" n="ImageDisplayFormat" t="20100010">@remove()</e>
  <e en="F" n="AnnotationDisplayFormatID" t="20100030">@remove()</e>
  <e en="F" n="FilmOrientation" t="20100040">@remove()</e>
