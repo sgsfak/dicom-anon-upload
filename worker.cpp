@@ -1,10 +1,9 @@
 
 #include "worker.h"
+#include "utils.h"
 
 #include <QApplication>
 #include <QDebug>
-#include <QProcess>
-#include <QProcessEnvironment>
 #include <QDir>
 #include <QDateTime>
 #include <QThread>
@@ -32,8 +31,7 @@ Worker::Worker(const QString &filePath, const QString& patId,
 QString Worker::temp_anon_folder() const
 {
     QString sub_folfer = QString("/anon-out/%1_%2_%3")
-            .arg(this->patId_)
-            .arg(this->timePointId_)
+            .arg(this->patId_, this->timePointId_)
             .arg(this->id_);
     return QCoreApplication::applicationDirPath().append(sub_folfer);
 }
@@ -45,11 +43,11 @@ void Worker::anonymize() {
 
     QDir inputFolder{filePath_};
 
-    QDateTime now = QDateTime::currentDateTime();
+    // QDateTime now = QDateTime::currentDateTime();
 
     QString outFolder = this->temp_anon_folder();
 
-    int k = this->patId_.indexOf('-');
+    qsizetype k = this->patId_.indexOf('-');
     if (k == -1) {
         k = 0;
     }
@@ -67,6 +65,24 @@ void Worker::anonymize() {
         << "-pTIMEPOINTDESCR" << this->timePointDescr_
         << "-in" << inputFolder.canonicalPath()
         << "-out" << outFolder;
+
+    try {
+        QString output = run_ctp(this, args);
+    }
+    catch (const ExecException& ex) {
+        if (ex.status_ == ExecException::DidntStart) {
+            emit error(QString("Could not start Java CTP command! Are you sure you have Java installed?"));
+        }
+        else if (ex.status_ == ExecException::CrashExit) {
+            emit error(QString("Anonymization through CTP failed! Log:\n\n%1").arg(ex.output_));
+
+        }
+        return;
+
+    }
+    emit finishedAnon();
+    /*
+
     qDebug().noquote() << "Running java with" << args;
     QProcess *proc = new QProcess(this);
 
@@ -105,6 +121,7 @@ void Worker::anonymize() {
         return;
     }
     emit finishedAnon();
+    */
 }
 
 

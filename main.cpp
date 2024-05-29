@@ -38,14 +38,14 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    // QFileInfo mdicom_exe {mdicom_path()};
-    // if (!mdicom_exe.exists() || !mdicom_exe.isFile() || !mdicom_exe.isExecutable()) {
-    //     QMessageBox::information(nullptr, "mDicom.exe missing",
-    //                              "Installation of MicroDicom cannot be found"
-    //                              " so viewing of DICOM files is not supported. <br>If you want it, "
-    //                              " you can download its installer from <a href='https://www.microdicom.com/downloads.html'>here</>.",
-    //                              QMessageBox::Ok);
-    // }
+    QFileInfo mdicom_exe {mdicom_path()};
+    if (!mdicom_exe.exists() || !mdicom_exe.isFile() || !mdicom_exe.isExecutable()) {
+        QMessageBox::information(nullptr, "mDicom.exe missing",
+                                 "Installation of MicroDicom cannot be found"
+                                 " so viewing of DICOM files is not supported. <br>If you want it, "
+                                 " you can download its installer from <a href='https://www.microdicom.com/downloads.html'>here</>.",
+                                 QMessageBox::Ok);
+    }
 
 #if 0
     LoginWindow* w = new LoginWindow;
@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
     });
 #else
 
+
     QDialog* dlg = new QDialog();
     Ui::WelcomeWindow* d = new Ui::WelcomeWindow;
     d->setupUi(dlg);
@@ -67,15 +68,16 @@ int main(int argc, char *argv[])
 
     MainWindow* mw = new MainWindow;
     QObject::connect(dlg, &QDialog::accepted, mw, [mw]() {
+        mw->on_tokens(token_data{}, user_info{});
         mw->show();
         mw->raise();
     });
-    // if (dlg->exec() == QDialog::Accepted) {
-    //     MainWindow* mw = new MainWindow;
-    //     // mw->on_tokens(tokens, user);
-    //     mw->show();
-    //     mw->raise();
-    // }
+    // // if (dlg->exec() == QDialog::Accepted) {
+    // //     MainWindow* mw = new MainWindow;
+    // //     // mw->on_tokens(tokens, user);
+    // //     mw->show();
+    // //     mw->raise();
+    // // }
     dlg->show();
     return a.exec();
 #endif

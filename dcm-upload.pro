@@ -1,6 +1,6 @@
 REVISION = $$system(git rev-parse --short HEAD)
 DEFINES += APP_REVISION=$$REVISION
-VERSION = 0.10.2
+VERSION = 0.10.5
 DEFINES += APP_VERSION=$$VERSION
 
 QT       += core gui network sql
@@ -8,7 +8,7 @@ QT       += core gui network sql
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
-CONFIG += console
+# CONFIG += console
 CONFIG += sdk_no_version_check
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings

@@ -36,6 +36,7 @@ protected:
 
     void start_anonymize(const QString& dirName);
     bool patientid_valid(const QString& patientId) const;
+    QString ctp_config();
 
 public slots:
     void on_tokens(const token_data& t, const user_info& u);
@@ -46,6 +47,8 @@ private slots:
     void upload();
 
     void on_action_Open_triggered();
+
+    void on_actionAbout_Qt_triggered();
 
 private:
     Ui::MainWindow *ui;
@@ -58,6 +61,7 @@ private:
     QString style;
 
     std::vector<QPair<QString, QString>> timepoints_;
+    QString ctp_config_;
 };
 
 #endif // MAINWINDOW_H

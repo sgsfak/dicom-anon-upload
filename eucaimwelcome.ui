@@ -74,6 +74,16 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Developed by FORTH-ICS, © 2024</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources>

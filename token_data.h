@@ -14,6 +14,9 @@ struct user_info {
     QString user_id;
     QString name;
     std::vector<QString> groups;
+public:
+    user_info(): name{"anonymous"}
+    {}
 };
 
 #endif // TOKEN_DATA_H

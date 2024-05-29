@@ -30,10 +30,8 @@
 #include "ui_progress_dialog.h"
 #include "utils.h"
 
-#define _STR(X) #X
-#define STR(X) _STR(X)
-
-#define VERSION STR(APP_VERSION)
+#define VERSION QT_STRINGIFY(APP_VERSION)
+#define GIT_REV QT_STRINGIFY(APP_REVISION)
 #define CTP_URL "https://mircwiki.rsna.org/index.php?title=The_CTP_DICOM_Anonymizer"
 
 static int qfile_create_if_needed(const QString& filename)
@@ -99,7 +97,7 @@ void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->tokens = tokens;
     this->user = user;
     QLabel *label = new QLabel(this);
-    // label->setText("Git rev:" STR(APP_REVISION));
+    // label->setText("Git rev:" QT_STRINGIFY(APP_REVISION));
     label->setText(QString("Version %1 - User: %2").arg(VERSION, user.name));
     this->statusBar()->addWidget(label);
     this->show();
@@ -129,7 +127,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 
 }
 
-bool MainWindow::patientid_valid(const QString &patientId) const
+bool MainWindow::patientid_valid(const QString & patient_id) const
 {
 #if 0
     // Ids should conform to the following syntax:
@@ -156,6 +154,7 @@ bool MainWindow::patientid_valid(const QString &patientId) const
     }
     return false;
 #else
+    Q_UNUSED(patient_id)
     return true;
 #endif
 }
@@ -310,7 +309,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
 
 
     this->dlg_->buttonBox->button(QDialogButtonBox::Help)->setText("Inspect");
-    this->dlg_->buttonBox->button(QDialogButtonBox::Apply)->setText("Open folder");
+    this->dlg_->buttonBox->button(QDialogButtonBox::Apply)->setText("Open output folder");
     connect(this->dlg_->buttonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton* button){
         QAbstractButton* inspectBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Help);
         QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
@@ -422,17 +421,48 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_action_About_triggered()
 {
-    QMessageBox::information(this, "About DICOM Upload Tool",
-                             "<h1>DICOM Upload tool</h1>"
-                             "Version: " VERSION "<br>"
-                             "&copy; FORTH-ICS, 2023 <br><br>"
-                             "This tool uses the <a href='" CTP_URL "'>RSNA CTP anonymizer</a>");
+    QString title = "About DICOM Anonymizer Tool";
+    QString text =
+        "<h1>DICOM Anonymizer tool</h1>"
+        "Version: " VERSION "<br>"
+        "&copy; FORTH-ICS, 2024 <br><br>"
+        "This tool uses the <a href='" CTP_URL "'>RSNA CTP anonymizer</a> and it is built "
+        "with Qt under the <a href='https://www.qt.io/licensing/open-source-lgpl-obligations'>LGPLv3</a> license.";
+
+    // QMessageBox::information(this, title, text);
+    QMessageBox msgBox{QMessageBox::Information, title,text, QMessageBox::Ok, this};
+    msgBox.setDetailedText(this->ctp_config());
+    msgBox.exec();
 }
 
+QString MainWindow::ctp_config()
+{
+    if (this->ctp_config_ == "") {
+        QStringList args;
+        args << "-jar" << "DAT.jar";
+        try {
+            QString output = run_ctp(this, args);
+
+            QStringList parts = output.split("Configuration:");
+            if (parts.length() > 1)
+                this->ctp_config_ = QString("CTP Configuration:%1").arg(parts.at(1));
+        }
+        catch (const ExecException&) {}
+    }
+
+    return this->ctp_config_;
+
+}
 
 void MainWindow::on_action_Open_triggered()
 {
     QString dir = QFileDialog::getExistingDirectory(this, tr("Open DICOM folder"), "", QFileDialog::ShowDirsOnly);
     this->start_anonymize(dir);
+}
+
+
+void MainWindow::on_actionAbout_Qt_triggered()
+{
+    QMessageBox::aboutQt(this);
 }
 
