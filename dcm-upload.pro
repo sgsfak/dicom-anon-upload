@@ -16,6 +16,9 @@ CONFIG += sdk_no_version_check
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 
+UI_DIR = $$PWD
+TARGET = "EUCAIM Anonymizer"
+
 macx {
 INCLUDEPATH += "/usr/local/Cellar/libzip/1.10.1/include"
 QMAKE_LFLAGS += "-L/usr/local/Cellar/libzip/1.10.1/lib -lzip"

@@ -55,6 +55,7 @@
     </property>
     <addaction name="action_Open"/>
     <addaction name="separator"/>
+    <addaction name="actionConfig"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -63,14 +64,7 @@
     <addaction name="action_About"/>
     <addaction name="actionAbout_Qt"/>
    </widget>
-   <widget class="QMenu" name="menuEdit">
-    <property name="title">
-     <string>Configuration</string>
-    </property>
-    <addaction name="actionConfiguration"/>
-   </widget>
    <addaction name="menu_File"/>
-   <addaction name="menuEdit"/>
    <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -89,9 +83,12 @@
     <string>About Qt</string>
    </property>
   </action>
-  <action name="actionConfiguration">
+  <action name="actionConfig">
    <property name="text">
-    <string>Configuration..</string>
+    <string>Edit config..</string>
+   </property>
+   <property name="toolTip">
+    <string>Edit configuration</string>
    </property>
   </action>
  </widget>

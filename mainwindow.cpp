@@ -90,8 +90,6 @@ MainWindow::MainWindow(QWidget *parent) :
     this->style = this->styleSheet();
 
     this->setWindowTitle("EUCAIM DICOM Anonymizer");
-    ui->menubar->addMenu(ui->menuEdit);
-    ui->menuEdit->addAction(ui->actionConfiguration);
 
     QSqlQuery q;
     q.prepare("SELECT id, descr FROM timepoints");
@@ -147,10 +145,10 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->tokens = tokens;
     this->user = user;
-    QLabel *label = new QLabel(this);
+    this->statusLabel_ = new QLabel(this);
     // label->setText("Git rev:" QT_STRINGIFY(APP_REVISION));
-    label->setText(QString("Version %1 - User: %2 | Site ID: %3").arg(VERSION, user.name, this->cfg.site_id));
-    this->statusBar()->addWidget(label);
+    this->statusLabel_->setText(QString("Version %1 | Site ID: %3").arg(VERSION, this->cfg.site_id));
+    this->statusBar()->addWidget(this->statusLabel_);
     this->show();
 }
 
@@ -458,8 +456,6 @@ void MainWindow::on_action_Open_triggered()
     // qDebug() << "You selected" << dir;
     if (dir != "")
         this->start_anonymize(dir);
-    else
-        this->on_actionConfig_triggered();
 }
 
 
@@ -469,7 +465,7 @@ void MainWindow::on_actionAbout_Qt_triggered()
 }
 
 
-void MainWindow::on_actionConfig_triggered()
+void MainWindow::editConfig()
 {
 
     dcm_upload_config::read_config(this->cfg);
@@ -492,13 +488,15 @@ void MainWindow::on_actionConfig_triggered()
             this->cfg.site_id = new_site_id;
             this->cfg.pid_prefix = new_pid_prefix;
             this->cfg.save_config();
+            this->statusLabel_->setText(QString("Version %1 | Site ID: %3").arg(VERSION, this->cfg.site_id));
         }
     }
     delete d;
 }
 
-void MainWindow::on_actionConfiguration_triggered()
+void MainWindow::on_actionConfig_triggered()
 {
-    this->on_actionConfig_triggered();
+    this->editConfig();
+
 }
 

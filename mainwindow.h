@@ -53,8 +53,6 @@ private slots:
 
     void on_actionConfig_triggered();
 
-    void on_actionConfiguration_triggered();
-
 private:
     Ui::MainWindow *ui;
 //    class QProgressDialog* pd_;
@@ -68,6 +66,9 @@ private:
 
     std::vector<QPair<QString, QString>> timepoints_;
     QString ctp_config_;
+
+    void editConfig();
+    class QLabel* statusLabel_;
 };
 
 #endif // MAINWINDOW_H
