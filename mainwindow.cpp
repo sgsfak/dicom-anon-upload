@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
-#include "ui_patientinfo.h"
+#include "ui_configdialog.h"
 
 #include <QDebug>
 #include <QDesktopServices>
@@ -29,6 +28,7 @@
 #include "upload_worker.h"
 #include "ui_progress_dialog.h"
 #include "utils.h"
+#include "utilities/bigint.hpp"
 
 #define VERSION QT_STRINGIFY(APP_VERSION)
 #define GIT_REV QT_STRINGIFY(APP_REVISION)
@@ -45,6 +45,40 @@ static int qfile_create_if_needed(const QString& filename)
     return 1;
 }
 
+
+void dcm_upload_config::save_config()
+{
+
+    QSqlQuery query{QSqlDatabase::database("main_db")};
+    query.prepare("INSERT INTO config (site_id, pid_prefix) "
+                  "VALUES (:sid, :p)");
+    query.bindValue(":sid", this->site_id);
+    query.bindValue(":p", this->pid_prefix);
+
+    query.exec();
+    this->id_ = query.lastInsertId().toInt();
+
+}
+
+int dcm_upload_config::read_config(dcm_upload_config& cfg)
+{
+    QSqlQuery query{QSqlDatabase::database("main_db")};
+    query.prepare("SELECT id, site_id, pid_prefix from config order by updated_at desc limit 1");
+    query.exec();
+    if (query.lastError().type() != QSqlError::NoError) {
+        qDebug() << "SQL Error" << query.lastError();
+        return -1;
+    }
+    if (query.next()) {
+        cfg.id_ = query.value(0).toInt();
+        cfg.site_id = query.value(1).toString();
+        cfg.pid_prefix = query.value(2).toString();
+        return 1;
+
+    }
+    return 0;
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -56,6 +90,8 @@ MainWindow::MainWindow(QWidget *parent) :
     this->style = this->styleSheet();
 
     this->setWindowTitle("EUCAIM DICOM Anonymizer");
+    ui->menubar->addMenu(ui->menuEdit);
+    ui->menuEdit->addAction(ui->actionConfiguration);
 
     QSqlQuery q;
     q.prepare("SELECT id, descr FROM timepoints");
@@ -65,8 +101,8 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     // Open the history db, where we store the uploads etc:
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "history_db");
-    QString dbFile = qApp->applicationDirPath() + "/history.sqlite";
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "main_db");
+    QString dbFile = qApp->applicationDirPath() + "/dcm_upload.sqlite";
     ::qfile_create_if_needed(dbFile);
     db.setDatabaseName( dbFile );
     qDebug() << "Opening DB at" << dbFile;
@@ -86,10 +122,25 @@ MainWindow::MainWindow(QWidget *parent) :
                " upload_id TEXT DEFAULT NULL,"
                " upload_started_at DATETIME DEFAULT NULL,"
                " upload_finished_at DATETIME DEFAULT NULL)");
+        q.exec("CREATE TABLE IF NOT EXISTS config("
+               " id INTEGER PRIMARY KEY,"
+               " site_id TEXT NOT NULL,"
+               " pid_prefix TEXT NOT NULL,"
+               " updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
         if (db.lastError().type() != QSqlError::NoError) {
             QMessageBox::information(this, "Error", "Cannot open history database at " + dbFile);
         }
     }
+
+
+    int ok = dcm_upload_config::read_config(this->cfg);
+    if (!ok) {
+        // Some defaults (?) :
+        this->cfg.pid_prefix = "EUCAIM";
+        this->cfg.site_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        this->cfg.save_config();
+    }
+
 }
 
 
@@ -98,7 +149,7 @@ void MainWindow::on_tokens(const token_data& tokens, const user_info& user) {
     this->user = user;
     QLabel *label = new QLabel(this);
     // label->setText("Git rev:" QT_STRINGIFY(APP_REVISION));
-    label->setText(QString("Version %1 - User: %2").arg(VERSION, user.name));
+    label->setText(QString("Version %1 - User: %2 | Site ID: %3").arg(VERSION, user.name, this->cfg.site_id));
     this->statusBar()->addWidget(label);
     this->show();
 }
@@ -129,71 +180,17 @@ void MainWindow::dropEvent(QDropEvent *event)
 
 bool MainWindow::patientid_valid(const QString & patient_id) const
 {
-#if 0
-    // Ids should conform to the following syntax:
-    // <digit> <digit> "-" <digit> <digit>*
-
-    static QRegularExpression re{"\\d\\d-\\d+"};
-    if (!re.match(patientId).hasMatch()) {
-        return false;
-    }
-
-    // we check the groups the user belongs to, and see whether
-    // the given patient id is compatible with the corresponding
-    // prefix:
-    QString prefix = patientId.left(2);
-    for(const QString& cc: this->user.groups) {
-        if (!cc.startsWith("CC")) continue;
-        else if (cc == "CC_TEST" && prefix == "00") return true;
-        else if (cc == "CC_BOCOC" && prefix == "01") return true;
-        else if (cc == "CC_IEO" && prefix == "02") return true;
-        else if (cc == "CC_IOL" && prefix == "03") return true;
-        else if (cc == "CC_KSBC" && prefix == "04") return true;
-        else if (cc == "CC_NKUA" && prefix == "05") return true;
-        else if (cc == "CC_UOI" && prefix == "06") return true;
-    }
-    return false;
-#else
     Q_UNUSED(patient_id)
     return true;
-#endif
 }
 void MainWindow::start_anonymize(const QString& dirName)
 {
-
-#if 0
-    QDialog dlg(this);
-    Ui::patientInfo d;
-    d.setupUi(&dlg);
-    for(const auto& s: this->timepoints_) {
-       d.timepointComboBox->addItem(s.second, s.first);
-    }
-
-    if (dlg.exec() == QDialog::Accepted) {
-        QString patId = d.patientIDLineEdit->text();
-        QString timePointId = d.timepointComboBox->currentData(Qt::UserRole).toString();
-        QString timePointAnnotation = d.timepointComboBox->currentText();
-
-        // Check the given patient id:
-        if (!this->patientid_valid(patId)) {
-            QMessageBox::critical(this,
-                                  "Error",
-                                  QString("The given patient id: '%1' does not appear to"
-                                          " be valid for your clinical center!").arg(patId));
-        }
-        else
-            QTimer::singleShot(0, this, [this, dirName, patId, timePointId, timePointAnnotation]() {
-                this->anonymize(dirName, patId, timePointId, timePointAnnotation);
-            });
-    }
-#else
     QString patId = QString("00-%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
     QString timePointId = "";
     QString timePointAnnotation = "";
     QTimer::singleShot(0, this, [this, dirName, patId, timePointId, timePointAnnotation]() {
         this->anonymize(dirName, patId, timePointId, timePointAnnotation);
     });
-#endif
 }
 
 
@@ -219,7 +216,7 @@ void MainWindow::dragLeaveEvent(QDragLeaveEvent *event)
 namespace {
     qlonglong history_insert(const QString& patient_id, const QString& timepoint_id, const QString& timepoint, const QString& anon_dir)
     {
-        QSqlQuery query{QSqlDatabase::database("history_db")};
+        QSqlQuery query{QSqlDatabase::database("main_db")};
         query.prepare("INSERT INTO history (patient_id, timepoint_id, timepoint, anon_dir) "
                       "VALUES (:patient_id, :timepoint_id, :timepoint, :anon_dir)");
         query.bindValue(":patient_id", patient_id);
@@ -240,7 +237,7 @@ namespace {
     }
     void history_set_upload_start(qlonglong history_id, const QString& upload_id)
     {
-        QSqlQuery query{QSqlDatabase::database("history_db")};
+        QSqlQuery query{QSqlDatabase::database("main_db")};
         query.prepare("UPDATE history SET upload_id=:upload_id, upload_started_at=CURRENT_TIMESTAMP WHERE id=:id");
         query.bindValue(":upload_id", upload_id);
         query.bindValue(":id", history_id);
@@ -251,7 +248,7 @@ namespace {
     }
     void history_set_upload_end(qlonglong history_id)
     {
-        QSqlQuery query{QSqlDatabase::database("history_db")};
+        QSqlQuery query{QSqlDatabase::database("main_db")};
         query.prepare("UPDATE history SET upload_finished_at=CURRENT_TIMESTAMP WHERE id=:id");
         query.bindValue(":id", history_id);
         query.exec();
@@ -261,7 +258,7 @@ namespace {
     }
     void history_set_upload_error(qlonglong history_id, const QString& error)
     {
-        QSqlQuery query{QSqlDatabase::database("history_db")};
+        QSqlQuery query{QSqlDatabase::database("main_db")};
         query.prepare("UPDATE history SET error_msg=:err WHERE id=:id");
         query.bindValue(":err", error);
         query.bindValue(":id", history_id);
@@ -275,7 +272,8 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
                            const QString& tmId, const QString& label)
 {
 
-    Worker* worker = new Worker(filePath, patId, tmId, label, this->tokens.access_token);
+    Worker* worker = new Worker(filePath,
+                                this->cfg.site_id, this->cfg.pid_prefix);
 
     this->upload_info.anon_folder = worker->temp_anon_folder();
     this->upload_info.patient_id = patId;
@@ -310,6 +308,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
 
     this->dlg_->buttonBox->button(QDialogButtonBox::Help)->setText("Inspect");
     this->dlg_->buttonBox->button(QDialogButtonBox::Apply)->setText("Open output folder");
+    // this->dlg_->buttonBox->button(QDialogButtonBox::Close)->setText("Close");
     connect(this->dlg_->buttonBox, &QDialogButtonBox::clicked, this, [this](QAbstractButton* button){
         QAbstractButton* inspectBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Help);
         QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
@@ -334,14 +333,13 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
         this->dlg_->progressBar->setVisible(false);
     });
     connect(worker, &Worker::finishedAnon, this, [this]() {
-        this->dlg_->label->setText("<h2>Anonymization finished!</h2>"
-                                   "You can view the anonymized files by pressing the Inspect button or proceed directly to Upload");
+        this->dlg_->label->setText("<h2>Anonymization finished!</h2>");
         this->dlg_->progressBar->setVisible(false);
 
         QAbstractButton* inspectBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Help);
         QAbstractButton* uploadBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Apply);
 
-        inspectBtn->setEnabled(true);
+        inspectBtn->setEnabled(false);
         uploadBtn->setEnabled(true);
       });
 
@@ -425,7 +423,7 @@ void MainWindow::on_action_About_triggered()
     QString text =
         "<h1>DICOM Anonymizer tool</h1>"
         "Version: " VERSION "<br>"
-        "&copy; FORTH-ICS, 2024 <br><br>"
+        "&copy; FORTH-ICS, 2025 <br><br>"
         "This tool uses the <a href='" CTP_URL "'>RSNA CTP anonymizer</a> and it is built "
         "with Qt under the <a href='https://www.qt.io/licensing/open-source-lgpl-obligations'>LGPLv3</a> license.";
 
@@ -457,12 +455,50 @@ QString MainWindow::ctp_config()
 void MainWindow::on_action_Open_triggered()
 {
     QString dir = QFileDialog::getExistingDirectory(this, tr("Open DICOM folder"), "", QFileDialog::ShowDirsOnly);
-    this->start_anonymize(dir);
+    // qDebug() << "You selected" << dir;
+    if (dir != "")
+        this->start_anonymize(dir);
+    else
+        this->on_actionConfig_triggered();
 }
 
 
 void MainWindow::on_actionAbout_Qt_triggered()
 {
     QMessageBox::aboutQt(this);
+}
+
+
+void MainWindow::on_actionConfig_triggered()
+{
+
+    dcm_upload_config::read_config(this->cfg);
+
+    QDialog *w = new QDialog(this);
+    auto d = new Ui::ConfigDialog();
+    d->setupUi(w);
+
+    d->siteIDLineEdit->setText(this->cfg.site_id);
+    d->patientIDPrefixLineEdit->setText(this->cfg.pid_prefix);
+
+    w->setModal(true);
+
+    if (QDialog::Accepted == w->exec()) {
+        auto new_site_id = d->siteIDLineEdit->text().trimmed();
+        auto new_pid_prefix = d->patientIDPrefixLineEdit->text().trimmed();
+
+        if (this->cfg.site_id != new_site_id || this->cfg.pid_prefix != new_pid_prefix) {
+            // Save in DB
+            this->cfg.site_id = new_site_id;
+            this->cfg.pid_prefix = new_pid_prefix;
+            this->cfg.save_config();
+        }
+    }
+    delete d;
+}
+
+void MainWindow::on_actionConfiguration_triggered()
+{
+    this->on_actionConfig_triggered();
 }
 

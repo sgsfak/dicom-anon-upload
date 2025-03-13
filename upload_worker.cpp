@@ -17,7 +17,6 @@
 #include <QList>
 #include <QEventLoop>
 
-#include <stdexcept>
 
 #define SERVER_URL "https://dcm.cardiocare-project.eu"
 
@@ -55,7 +54,6 @@ struct HttpException: public std::exception
     const int status_code;
     const QString status_description;
 
-    HttpException(): status_code(0), status_description("") {}
     HttpException(int c, const QString& d): status_code(c), status_description(d) {}
 };
 
@@ -112,7 +110,7 @@ int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
     QList<QFileInfo> dcm_list;
     QDirIterator iter(outputAnonFolder, QDirIterator::Subdirectories);
     while (iter.hasNext()) {
-        QString s = iter.next();
+        // QString s = iter.next();
         // qDebug().noquote() << "Now at " << s;
         QFileInfo fileInfo = iter.fileInfo();
         if (fileInfo.isFile()) {
@@ -168,7 +166,7 @@ int UploadWorker::upload_dcms(const QDir& outputAnonFolder)
 
     emit started(this->upload_id_);
 
-    this->nfiles_ = file_hashes.size();
+    this->nfiles_ = static_cast<int>(file_hashes.size());
     this->totalBytes_ = total_bytes;
     this->nfinished_ = this->nerror_ = 0;
 

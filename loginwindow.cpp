@@ -3,15 +3,18 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QTimer>
+#include <QFileInfo>
 #include <QProgressDialog>
-#include <QtSql>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlQuery>
+#include <QtSql/QSqlError>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonDocument>
-#include <algorithm>
 
-#include "mainwindow.h"
 
 LoginWindow::LoginWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -178,7 +181,7 @@ void LoginWindow::on_userinfo_finished(QNetworkReply* reply)
     this->user_.name = json.value("name").toString();
 
     QJsonArray json_array = json.value("groups").toArray();
-    for(QJsonValue v: json_array) {
+    for(QJsonValue v: qAsConst(json_array)) {
         this->user_.groups.push_back(v.toString());
     }
 

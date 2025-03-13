@@ -1,6 +1,12 @@
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "worker.h"
 #include "utils.h"
+#include "utilities/csv.hpp"
+#include "utilities/bigint.hpp"
 
 #include <QApplication>
 #include <QDebug>
@@ -8,33 +14,31 @@
 #include <QDateTime>
 #include <QThread>
 #include <QFile>
+#include <QFileInfo>
 #include <QIODevice>
 #include <QCryptographicHash>
+#include <QRandomGenerator>
 #include <QPair>
 
-#define SERVER_URL "https://dcm.cardiocare-project.eu"
 
-Worker::Worker(const QString &filePath, const QString& patId,
-               const QString& timepointId, const QString& timepointDesc,
-               const QString& token):
+Worker::Worker(const QString &filePath,
+               const QString& site_id, const QString& pid_prefix):
 
-    id_(QDateTime::currentDateTime().toSecsSinceEpoch()),
+    id_(QDateTime::currentDateTimeUtc().toString("yyyyMMddThhmmss")+
+        QString("_%1").arg(QRandomGenerator::global()->bounded(1000), 3, 10, QChar('0'))),
     filePath_(filePath),
-    patId_(patId),
-    timePointId_(timepointId),
-    timePointDescr_(timepointDesc),
-    access_token_(token)
+    site_id_(site_id.toUtf8().constData()),
+    pid_prefix_(pid_prefix.toUtf8().constData())
 
-{}
-
-
-QString Worker::temp_anon_folder() const
 {
-    QString sub_folfer = QString("/anon-out/%1_%2_%3")
-            .arg(this->patId_, this->timePointId_)
-            .arg(this->id_);
-    return QCoreApplication::applicationDirPath().append(sub_folfer);
+
+    auto tempDir = QDir::temp();
+    QString sub_folfer = QString("anon_job_%1").arg(this->id_);
+    tempDir.mkdir(sub_folfer);
+    this->outFolder_ = tempDir.filePath(sub_folfer);
+
 }
+
 
 void Worker::anonymize() {
 
@@ -43,31 +47,40 @@ void Worker::anonymize() {
 
     QDir inputFolder{filePath_};
 
+
     // QDateTime now = QDateTime::currentDateTime();
 
     QString outFolder = this->temp_anon_folder();
 
-    qsizetype k = this->patId_.indexOf('-');
-    if (k == -1) {
-        k = 0;
-    }
-    QString siteId = "EUCAIM local -" + this->patId_.left(k);
+    QStringList csvFilters;
+    csvFilters << "*.csv";
+    QFileInfoList csvList = inputFolder.entryInfoList(csvFilters);
+    if (!csvList.empty()) {
+        QFileInfo csvFile = csvList[0];
+        QString fileName = csvFile.fileName();
+        QDir outDir{outFolder};
 
-    // Use the Clinical trial attributes to pass the "time point" related annotation:
-    // https://dicom.nema.org/medical/Dicom/2016b/output/chtml/part03/sect_C.7.2.3.html#sect_C.7.2.3.1.1
+        try {
+            this->hash_clinical(csvFile.absoluteFilePath(), outDir.filePath(fileName));
+        }
+        catch (const QException& e) {
+            emit error(QString("Error: %1").arg(e.what()));
+        }
+    }
+
+
+    QString siteId = QString::fromUtf8(this->site_id_);
+
     QStringList args;
     args << "-jar" << "DAT.jar"
         << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
         << "-da" << "anon.script"
         << "-pSITEID" << siteId
-        << "-pPATIENTID" << this->patId_
-        << "-pTIMEPOINTID" << this->timePointId_
-        << "-pTIMEPOINTDESCR" << this->timePointDescr_
         << "-in" << inputFolder.canonicalPath()
         << "-out" << outFolder;
 
     try {
-        QString output = run_ctp(this, args);
+        run_ctp(this, args);
     }
     catch (const ExecException& ex) {
         if (ex.status_ == ExecException::DidntStart) {
@@ -81,47 +94,83 @@ void Worker::anonymize() {
 
     }
     emit finishedAnon();
-    /*
-
-    qDebug().noquote() << "Running java with" << args;
-    QProcess *proc = new QProcess(this);
-
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-//    env.insert("JAVA_HOME", "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home");
+}
 
 
-    proc->setWorkingDirectory(appdir.absolutePath());
-    proc->setProcessEnvironment(env);
-    proc->setProcessChannelMode(QProcess::MergedChannels);
-
-    //    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-    //            this,
-    //            [](int exitCode, QProcess::ExitStatus exitStatus)
-    //    {
-    //        qDebug() << "FINI" << exitCode << exitStatus;
-    //    });
-
-    proc->start("java", args, QIODevice::ReadOnly);
-
-    if (!proc->waitForStarted(60000)) {
-        emit error(QString("Could not start Java CTP command!"));
-        return;
-    }
-    proc->waitForFinished(-1);
-    if (proc->exitStatus() != QProcess::NormalExit) {
-        emit error(QString("Java CTP command crashed!"));
-        return;
+std::string Worker::hash_pid(const char* patient_id) const
+{
+    QCryptographicHash h{QCryptographicHash::Md5};
+    QByteArray bpid(patient_id);
+    h.addData(bpid);
+    QByteArray ba = h.result();
+    bigint bi;
+    for (qsizetype i = 0; i < ba.size(); ++i) {
+        int c = static_cast<unsigned char>(ba.at(i));
+        bi *= 256;
+        bi += c;
     }
 
-    QString output = proc->readAll().constData();
-    qDebug().noquote() << output;
+    std::ostringstream iss;
+    iss << this->pid_prefix_;
+    iss << "-";
+    iss << bi;
+    return iss.str();
+}
 
-    if (proc->exitStatus() == QProcess::CrashExit || proc->exitCode() != 0) {
-        emit error(QString("Anonymization through CTP failed!"));
-        return;
+namespace {
+    class InvalidFileException: public QException
+    {
+    private:
+        std::string what_;
+    public:
+        InvalidFileException(const QString& filename);
+
+        virtual const char* what() const noexcept override {
+            return this->what_.c_str();
+        }
+    };
+}
+
+InvalidFileException::InvalidFileException(const QString& filename) {
+    this->what_ = "Failed to open file: ";
+    this->what_ += filename.toStdString();
+}
+
+void Worker::hash_clinical(const QString& inFile, const QString& outFile) const
+{
+    // qDebug() << "I am reading from"<<inFile << "and write to" << outFile;
+
+    if (!QFileInfo::exists(inFile)) {
+        throw InvalidFileException(inFile);
     }
-    emit finishedAnon();
-    */
+
+    csv::CSVReader reader{inFile.toStdString()};
+    std::ofstream ostrm { outFile.toStdString(), ostrm.out | ostrm.trunc};
+
+    if (!ostrm.is_open()) {
+        throw InvalidFileException(outFile);
+    }
+
+    auto writer = csv::make_csv_writer(ostrm);
+    csv::CSVRow row;
+    std::string pp = "[" + this->site_id_ + "]";
+
+    while (reader.read_row(row)) {
+        std::vector<std::string> out_row;
+        for (auto f: row) {
+            out_row.push_back(f.get());
+        }
+
+
+        std::string pid = row[0].get();
+        std::string toHash =  pp + pid;
+        std::string hashedPid = this->hash_pid(toHash.c_str());
+        // qDebug() << "IN PID"<< pid << "OUT" << hashedPid;
+        out_row[0] = hashedPid;
+
+        writer << out_row;
+    }
+    ostrm.flush();
 }
 
 

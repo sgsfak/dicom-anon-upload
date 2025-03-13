@@ -52,17 +52,21 @@ SOURCES += \
     xxhash/xxhash.c
 
 HEADERS += \
+    config.h \
     historyform.h \
     loginwindow.h \
     mainwindow.h \
     token_data.h \
     upload_worker.h \
+    utilities/bigint.hpp \
+    utilities/csv.hpp \
     utils.h \
     worker.h \
     xxhash/xxh_x86dispatch.h \
     xxhash/xxhash.h
 
 FORMS += \
+    configdialog.ui \
     eucaimwelcome.ui \
     historyform.ui \
     loginwindow.ui \

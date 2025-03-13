@@ -219,8 +219,8 @@
  <e en="F" n="FrameDisplaySeq" t="00089458">@remove()</e>
  <e en="F" n="RecommendedDisplayFrameRateInFloat" t="00089459">@remove()</e>
  <e en="F" n="SkipFrameRangeFlag" t="00089460">@remove()</e>
- <e en="T" n="PatientName" t="00100010">@param(ECI-)@hashptid(@SITEID,PatientID)</e>
- <e en="T" n="PatientID" t="00100020">@param(ECI-)@hashptid(@SITEID,this)</e>
+ <e en="T" n="PatientName" t="00100010">@param(EUCAIM-)@hashptid(@SITEID,PatientID)</e>
+ <e en="T" n="PatientID" t="00100020">@param(EUCAIM-)@hashptid(@SITEID,this)</e>
  <e en="F" n="IssuerOfPatientID" t="00100021">@remove()</e>
  <e en="F" n="TypeOfPatientID" t="00100022">@remove()</e>
  <e en="F" n="IssuerOfPatientIDQualifiersSeq" t="00100024">@remove()</e>

@@ -3,35 +3,37 @@
 
 #include <QObject>
 #include <QString>
-#include <unordered_map>
+#include <string>
 
 class Worker : public QObject
 {
     Q_OBJECT
 private:
-    const qint64 id_;
+    const QString id_;
     const QString filePath_;
-    const QString patId_;
-    const QString timePointId_;
-    const QString timePointDescr_;
-    const QString access_token_;
+    const std::string site_id_;
+    const std::string pid_prefix_;
+
+    QString outFolder_;
 
 public:
-    Worker(const QString &filePath, const QString& patId, const QString& timepointId,
-           const QString& timepointDesc, const QString& token);
+    Worker(const QString &filePath,
+           const QString& site_id, const QString& pid_prefix);
 
 
-    QString patient_id() const { return this->patId_; }
-    QString timepoint_id() const { return this->timePointId_; }
-    QString timepoint() const { return this->timePointDescr_; }
+    QString id() const { return this->id_; }
 
-    QString temp_anon_folder() const;
+    QString temp_anon_folder() const {return this->outFolder_; }
 
 private:
 
     class QEventLoop* eventLoop_;
 public slots:
     void anonymize();
+
+private:
+    std::string hash_pid(const char* patient_id) const;
+    void hash_clinical(const QString& csvInFilePath, const QString& csvOutFilePath) const;
 
 signals:
     void error(const QString& error);

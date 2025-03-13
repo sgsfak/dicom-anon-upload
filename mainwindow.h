@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "token_data.h"
+#include "config.h"
 
 namespace Ui {
 class MainWindow;
@@ -50,12 +51,17 @@ private slots:
 
     void on_actionAbout_Qt_triggered();
 
+    void on_actionConfig_triggered();
+
+    void on_actionConfiguration_triggered();
+
 private:
     Ui::MainWindow *ui;
 //    class QProgressDialog* pd_;
     class Ui_Dialog* dlg_;
     current_upload_info upload_info;
 
+    dcm_upload_config cfg;
     token_data tokens;
     user_info user;
     QString style;
