@@ -1,3 +1,7 @@
+.DS_Store
+.qmake.stash
+dcm-upload.pro.user*
+
 # Prerequisites
 *.d
 
@@ -30,3 +34,10 @@
 *.exe
 *.out
 *.app
+
+
+# Qt UI files
+ui_*.h
+
+# build directory:
+/build/
