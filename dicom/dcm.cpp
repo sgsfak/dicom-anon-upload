@@ -182,13 +182,12 @@ char* dcm_get_patient_id(const char* file_name, int *ok)
     uint32_t group_0002_length = read_group_0002_length(dicom_file);
     long dicom_set_start = ftell(dicom_file) + group_0002_length;
     PRINT_ERR("File header length: %d\n", group_0002_length);
-    int k = 25;
     char *value = NULL;
     size_t val_size = 0;
 
     // Read until the end of the Group 0002 metadata block
-    // wgich is always in the Little Endian format
-    while (--k)
+    // which is always in the Little Endian format
+    while (1)
     {
         // Read group, element, and length
         DICOMTag tag = read_tag(dicom_file, 1, 0);
