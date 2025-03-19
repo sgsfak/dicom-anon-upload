@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "utilities/csv.hpp"
 #include "utilities/bigint.hpp"
+#include "dicom/dcm.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -15,6 +16,7 @@
 #include <QThread>
 #include <QFile>
 #include <QFileInfo>
+#include <QDirIterator>
 #include <QIODevice>
 #include <QCryptographicHash>
 #include <QRandomGenerator>
@@ -51,6 +53,7 @@ void Worker::anonymize() {
     // QDateTime now = QDateTime::currentDateTime();
 
     QString outFolder = this->temp_anon_folder();
+    QDir outDir{outFolder};
 
     QStringList csvFilters;
     csvFilters << "*.csv";
@@ -58,7 +61,6 @@ void Worker::anonymize() {
     if (!csvList.empty()) {
         QFileInfo csvFile = csvList[0];
         QString fileName = csvFile.fileName();
-        QDir outDir{outFolder};
 
         try {
             this->hash_clinical(csvFile.absoluteFilePath(), outDir.filePath(fileName));
@@ -93,7 +95,25 @@ void Worker::anonymize() {
         return;
 
     }
-    emit finishedAnon();
+    QSet<std::string> pids;
+    QDirIterator it(outFolder, QStringList(), QDir::Files, QDirIterator::Subdirectories);
+    qsizetype cnt = 0;
+    while (it.hasNext()) {
+
+        QFile f {it.next()};
+        try {
+            auto patient_id = dcm::get_patient_id(f);
+            pids.insert(patient_id.constData());
+            // qDebug().noquote() << "File" << f.fileName() << ", Patient ID=" << patient_id.constData();
+        }
+        catch(const dcm::ParseException& e) {
+
+            qDebug().noquote() << "DICOM ParseException for file" << f.fileName() << ":" << e.reason();
+        }
+        cnt += 1;
+    }
+    qDebug().noquote() << cnt << "files read, output DICOM patients:" << pids.count();
+    emit finishedAnon(cnt, pids.count());
 }
 
 

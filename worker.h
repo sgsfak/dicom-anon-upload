@@ -37,7 +37,7 @@ private:
 
 signals:
     void error(const QString& error);
-    void finishedAnon();
+    void finishedAnon(qsizetype files_count, qsizetype patient_count);
 };
 
 #endif // WORKER_H

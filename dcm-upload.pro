@@ -44,6 +44,7 @@ LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows\lib -LC:\Users\User\vc
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    dicom/dcm.cpp \
     historyform.cpp \
     loginwindow.cpp \
     main.cpp \
@@ -56,6 +57,7 @@ SOURCES += \
 
 HEADERS += \
     config.h \
+    dicom/dcm.h \
     historyform.h \
     loginwindow.h \
     mainwindow.h \

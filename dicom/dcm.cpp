@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <assert.h>
 
 #include "dcm.h"
-
+#include <QDataStream>
+#include <QFile>
+#include <QDebug>
 
 #define DICOM_MAGIC "DICM"
 #define DICOM_PREAMBLE_SIZE 128
@@ -21,54 +22,61 @@
 
 
 // DICOM Tag structure
-typedef struct
+struct DICOMTag
 {
-    uint16_t group;
-    uint16_t element;
+    quint16 group;
+    quint16 element;
     char vr[3];
-    uint32_t length;
-} DICOMTag;
+    quint32 length;
 
-typedef enum endianness
-{
-    little_endian,
-    big_endian
-} endianness_t;
+    DICOMTag(): group(0), element(0), length(UNDEFINED_LENGTH) {
+        memset(this->vr, 0, 3);
+    }
+
+    QString toString() {
+        return QString( "(%1,%2)").arg(this->group, 4, 16).arg(this->element, 4, 16);
+    }
+};
+
 
 void print_tag(DICOMTag tag)
 {
-    PRINT_ERR("(%04X,%04X)[%s]{%d}\n", tag.group, tag.element, tag.vr, tag.length);
+#ifdef DEBUG
+    qDebug().noquote() << tag.toString() << "[" << tag.vr << "]" << "{" << tag.length << "}";
+#endif
 }
-
-#define UINT16_LE(bytes) (((bytes)[1] << 8) | (bytes)[0])
-#define UINT16_BE(bytes) (((bytes)[0] << 8) | (bytes)[1])
-#define UINT32_LE(bytes) (((bytes)[3] << 24) | ((bytes)[2] << 16) | ((bytes)[1] << 8) | (bytes)[0])
-#define UINT32_BE(bytes) (((bytes)[0] << 24) | ((bytes)[1] << 16) | ((bytes)[2] << 8) | (bytes)[3])
 
 // Function to manually assemble a 16-bit integer from little-endian bytes
-uint16_t read_uint16(FILE *dicom_file, int big_endian)
+static quint16 read_uint16(QDataStream& dicom_stream)
 {
-    uint8_t bytes[2];
-    fread(bytes, 1, 2, dicom_file);
-    return big_endian ? UINT16_BE(bytes) : UINT16_LE(bytes);
+    quint16 u;
+    dicom_stream >> u;
+    if (dicom_stream.status() != QDataStream::Ok) {
+        throw dcm::ParseException("Could not read UINT16");
+    }
+    return u;
 }
-uint32_t read_uint32(FILE *dicom_file, int big_endian)
+static quint32 read_uint32(QDataStream& dicom_stream)
 {
-    uint8_t bytes[4];
-    fread(bytes, 1, 4, dicom_file);
-    return big_endian ? UINT32_BE(bytes) : UINT32_LE(bytes);
+
+    quint32 u;
+    dicom_stream >> u;
+    if (dicom_stream.status() != QDataStream::Ok) {
+        throw dcm::ParseException("Could not read UINT32");
+    }
+    return u;
 }
 
 // Function to parse and read DICOM tags
 // actually ony the tag element, VR (optional, based on the explicit param)
 // and the length are read
-DICOMTag read_tag(FILE *dicom_file, int explicit_vr, int big_endian)
+static DICOMTag read_tag(QDataStream& dicom_stream, int explicit_vr)
 {
     DICOMTag tag;
-    memset(&tag, 0, sizeof(DICOMTag));
 
-    tag.group = read_uint16(dicom_file, big_endian) ;
-    tag.element = read_uint16(dicom_file, big_endian);
+    tag.group = read_uint16(dicom_stream) ;
+    tag.element = read_uint16(dicom_stream);
+
 
     /* 
       According to https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_7.5.html :
@@ -85,11 +93,14 @@ DICOMTag read_tag(FILE *dicom_file, int explicit_vr, int big_endian)
         || (tag.group == 0xFFFE && tag.element == 0xE00D)
         || (tag.group == 0xFFFE && tag.element == 0xE0DD)
     ) {
-        tag.length = read_uint32(dicom_file, big_endian);
+        tag.length = read_uint32(dicom_stream);
         return tag;
     }
     // OK, now we are in explicit mode, so we read the VR
-    fread(tag.vr, 1, 2, dicom_file);
+
+    if (dicom_stream.readRawData(tag.vr, 2) != 2) {
+        throw dcm::ParseException("Tag "+tag.toString() + " has no VR info");
+    }
     if (!(tag.vr[0] >='A' && tag.vr[0] <='Z' && tag.vr[1] >='A' && tag.vr[1] <='Z')) {
         tag.vr[0] = 'n';
         tag.vr[1] = 'a';
@@ -102,120 +113,96 @@ DICOMTag read_tag(FILE *dicom_file, int explicit_vr, int big_endian)
         strcmp(tag.vr, "UT") == 0 ||
         strcmp(tag.vr, "UN") == 0)
     {
-        read_uint16(dicom_file, big_endian); // Reserved, it should be 0x0000, so IGNORE THIS
-        tag.length = read_uint32(dicom_file, big_endian);
+        read_uint16(dicom_stream); // Reserved, it should be 0x0000, so IGNORE THIS
+        tag.length = read_uint32(dicom_stream);
     }
     else
-        tag.length = read_uint16(dicom_file, big_endian);
+        tag.length = read_uint16(dicom_stream);
 
     return tag;
 }
-uint32_t read_group_0002_length(FILE *dicom_file)
+
+static quint32 read_group_0002_length(QDataStream& dicom_stream)
 {
 
-    DICOMTag tag = read_tag(dicom_file, 1, 0);
+    DICOMTag tag = read_tag(dicom_stream, 1);
     print_tag(tag);
     assert(tag.group == GROUP_0002 && tag.element == 0 && tag.length == 4);
 
-    uint32_t header_length = read_uint32(dicom_file, 0);
+    quint32 header_length = read_uint32(dicom_stream);
     return header_length;
 }
 
-#define MY_REALLOC(_buf, _curr_size, _new_size) do { \
-        if (_new_size > _curr_size) {                \
-            _buf = (char*) realloc(_buf, _new_size);         \
-            _curr_size = _new_size;                  \
-            PRINT_ERR("  * incr %zu\n", _curr_size); \
-        }                                            \
-        memset(_buf, 0, _curr_size);                 \
-    } while (0)
-
-
-// Function to check the DICOM preamble and validate the "DICM" magic string
-void parse_dicom_preamble(FILE *dicom_file, int* ok)
+QByteArray dcm::get_patient_id(QFile& dcm_file)
 {
-    *ok = 0;
-    
-    // Buffer to store the preamble (first 128 bytes)
-    unsigned char preamble[DICOM_PREAMBLE_SIZE];
 
-    // Read the first 128 bytes
-    size_t bytesRead = fread(preamble, 1, DICOM_PREAMBLE_SIZE, dicom_file);
-    if (bytesRead != DICOM_PREAMBLE_SIZE) {
-        PRINT_ERR("Error: Unable to read the preamble from the file.\n");
-        return;
-    }
-
-    // Check if the file contains the DICM magic string after the preamble
-    char dicm_check[5];
-    fread(dicm_check, 1, 4, dicom_file);
-    dicm_check[4] = '\0'; // Null-terminate for comparison
-
-    if (strcmp(dicm_check, DICOM_MAGIC) == 0) {
-        *ok = 1;
-        return;
-    }
-    PRINT_ERR("Invalid DICOM magic string or corrupted file.\n");
-
-}
-
-char* dcm_get_patient_id(const char* file_name, int *ok)
-{
-    *ok = 0;
-
+    // fprintf(stderr, "Parsing file %s\n", file_name);
     // Open the DICOM file in binary mode
-    FILE *dicom_file = fopen(file_name, "rb");
-    if (dicom_file == NULL) {
-        PRINT_ERR("Failed to open the DICOM file");
-        return NULL;
+    if (!dcm_file.open(QIODeviceBase::ReadOnly)) {
+        throw dcm::ParseException("Failed to open file");
     }
-    // Parse the DICOM preamble and check for the magic string
-    parse_dicom_preamble(dicom_file, ok);
-    if (!ok) {
-        fclose(dicom_file);
-        return NULL;
+    QDataStream dicom_stream(&dcm_file);
+
+    // 1. Parse the DICOM preamble and check for the magic string
+
+    qint64 s = dicom_stream.skipRawData(DICOM_PREAMBLE_SIZE);
+    if (s < 0) {
+        throw dcm::ParseException("File "+dcm_file.fileName() + " does not appear to be a DICOM file");
     }
+    // Check if the file contains the DICM magic string after the preamble
+    char dicm_check[5] = {0};
+    s = dicom_stream.readRawData(dicm_check, 4);
+    if (s != 4 || strcmp(dicm_check, "DICM") != 0) {
+        throw dcm::ParseException("File "+dcm_file.fileName() + " does not appear to be a DICOM file");
+    }
+    else {
+        // qDebug().noquote() << QString("Out file %1 appears to be DICOM").arg(dcm_file.fileName());
+    }
+
+    // 2. Parse Group 0002, which is always in litle-endian, explicit VR mode
 
     int is_little_endian = 1;
     int explicit_vr = 1;
 
-    uint32_t group_0002_length = read_group_0002_length(dicom_file);
-    long dicom_set_start = ftell(dicom_file) + group_0002_length;
-    PRINT_ERR("File header length: %d\n", group_0002_length);
-    char *value = NULL;
-    size_t val_size = 0;
+    dicom_stream.setByteOrder(QDataStream::LittleEndian);
+    quint32 group_0002_length = read_group_0002_length(dicom_stream);
+    qint64 dicom_set_start = dcm_file.pos() + group_0002_length;
+    PRINT_ERR("File header length: %u\n", group_0002_length);
+
+    QByteArray buffer;
 
     // Read until the end of the Group 0002 metadata block
     // which is always in the Little Endian format
     while (1)
     {
         // Read group, element, and length
-        DICOMTag tag = read_tag(dicom_file, 1, 0);
+        DICOMTag tag = read_tag(dicom_stream, 1);
         print_tag(tag);
 
 
         if (tag.length != UNDEFINED_LENGTH) {
-            // value = realloc(value, tag.length+1);
-            // memset(value, 0, tag.length+1);
-            MY_REALLOC(value, val_size, tag.length+1);
-            fread(value, 1, tag.length, dicom_file);
+            buffer = dcm_file.read(tag.length);
         }
 
         if (strcmp(tag.vr, "OB") == 0 || strcmp(tag.vr, "OW") == 0 || strcmp(tag.vr, "OF") == 0) {
             continue;
         }
-        PRINT_ERR("\tValue: [%s]\n", value);
+
+        PRINT_ERR("\tValue: [%s]\n", buffer.constData());
 
         if (tag.group == GROUP_0002 && tag.element == TRANSFER_SYNTAX_ELEMENT) {
-            if (value[tag.length-1] == ' ') value[tag.length-1] = '\0';
-            if (strcmp((char*) value, "1.2.840.10008.1.2.2") == 0) {
+            // if (value[tag.length-1] == ' ') value[tag.length-1] = '\0';
+            if (buffer.endsWith(' '))
+                buffer[tag.length-1] = '\0';
+            buffer.append('\0'); // Make it null terminated
+            if (strcmp(buffer.constData(), "1.2.840.10008.1.2.2") == 0) {
                 is_little_endian = 0;
             }
-            else if (strcmp((char*) value, "1.2.840.10008.1.2") == 0) {
+            else if (strcmp(buffer.constData(), "1.2.840.10008.1.2") == 0) {
                 explicit_vr = 0;
             }
             PRINT_ERR("--> Endianness: %s (%s) Explicit=%d\n",
-                      value, 
+                      buffer.constData(),
                       is_little_endian ? "Little Endian" : "Big Endian",
                       explicit_vr);
         }
@@ -224,11 +211,16 @@ char* dcm_get_patient_id(const char* file_name, int *ok)
         }
     }
 
-    fseek(dicom_file, dicom_set_start, SEEK_SET);
+    // 3. Read the main DICOM Tag Set to locate the patient id:
 
-    while (!feof(dicom_file)) {
+    dcm_file.seek(dicom_set_start);
 
-        DICOMTag tag = read_tag(dicom_file, explicit_vr, is_little_endian ? 0 : 1);
+    if (!is_little_endian)
+        dicom_stream.setByteOrder(QDataStream::BigEndian);
+
+    while (1) {
+
+        DICOMTag tag = read_tag(dicom_stream, explicit_vr);
         print_tag(tag);
         if (tag.length == UNDEFINED_LENGTH) {
             continue;
@@ -236,18 +228,16 @@ char* dcm_get_patient_id(const char* file_name, int *ok)
         // If we reached pixel data (7FE0,0010) abandon the search:
         if (tag.group == 0x7FE0 && tag.element == 0x0010) break;
 
-        MY_REALLOC(value, val_size, tag.length+1);
-        fread(value, 1, tag.length, dicom_file);
-        PRINT_ERR("\tValue: [%s]\n", value);
+        buffer = dcm_file.read(tag.length);
+        buffer.append('\0');
+        PRINT_ERR("\tValue: [%s]\n", buffer.constData());
         if (tag.group == 0x0010 && tag.element == 0x0020) {
             // We found the Patient ID! Remove the last space if it's there
             // to make sure that the length is even, and return it:
-            if (value[tag.length-1] == ' ') value[tag.length-1] = '\0';
-            fclose(dicom_file);
-            return value;
+            if (buffer.endsWith(' '))
+                buffer[tag.length-1] = '\0';
+            return buffer;
         }
     }
-    free(value);
-    fclose(dicom_file);
-    return NULL;
+    return "";
 }
