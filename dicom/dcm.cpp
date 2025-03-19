@@ -14,6 +14,8 @@
 #define TRANSFER_SYNTAX_ELEMENT 0x0010
 #define UNDEFINED_LENGTH 0xFFFFFFFF
 
+// #define DEBUG
+
 #ifdef DEBUG
 #define PRINT_ERR(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -34,7 +36,7 @@ struct DICOMTag
     }
 
     QString toString() {
-        return QString( "(%1,%2)").arg(this->group, 4, 16).arg(this->element, 4, 16);
+        return QString( "(%1,%2)").arg(QString::number(this->group, 16), 4, '0').arg(QString::number(this->element, 16), 4, '0');
     }
 };
 
@@ -191,7 +193,6 @@ QByteArray dcm::get_patient_id(QFile& dcm_file)
         PRINT_ERR("\tValue: [%s]\n", buffer.constData());
 
         if (tag.group == GROUP_0002 && tag.element == TRANSFER_SYNTAX_ELEMENT) {
-            // if (value[tag.length-1] == ' ') value[tag.length-1] = '\0';
             if (buffer.endsWith(' '))
                 buffer[tag.length-1] = '\0';
             buffer.append('\0'); // Make it null terminated
@@ -205,6 +206,7 @@ QByteArray dcm::get_patient_id(QFile& dcm_file)
                       buffer.constData(),
                       is_little_endian ? "Little Endian" : "Big Endian",
                       explicit_vr);
+            break; // We found what we needed, i.e. the transfer syntax to decode the DICOM Data Set
         }
         if (tag.group != GROUP_0002) {
             break;
