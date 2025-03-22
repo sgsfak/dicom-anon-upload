@@ -35,7 +35,7 @@ win32 {
 INCLUDEPATH += "C:\Users\User\vcpkg\packages\libzip_x64-windows\include"
 INCLUDEPATH += "C:\Users\User\vcpkg\packages\zlib_x64-windows\include"
 INCLUDEPATH += "C:\Users\User\vcpkg\packages\bzip2_x64-windows\include"
-LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows\lib -LC:\Users\User\vcpkg\packages\zlib_x64-windows\lib -LC:\Users\User\vcpkg\packages\bzip2_x64-windows\lib -lbz2 -lzlib -lzip
+#LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows\lib -LC:\Users\User\vcpkg\packages\zlib_x64-windows\lib -LC:\Users\User\vcpkg\packages\bzip2_x64-windows\lib -lbz2 -lzlib -lzip
 }
 
 # You can also make your code fail to compile if it uses deprecated APIs.
@@ -92,9 +92,9 @@ RESOURCES += \
 RC_ICONS = eucaim.ico
 ICON = eucaim.icns
 
-win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibcrypto_static
+#win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibcrypto_static
 
-win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibssl_static
+#win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibssl_static
 
 INCLUDEPATH += $$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k
 DEPENDPATH += $$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k

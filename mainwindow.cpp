@@ -332,7 +332,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
     });
     connect(worker, &Worker::finishedAnon, this, [this](qsizetype files_count, qsizetype patients_count) {
         this->dlg_->label->setText("<h2>Anonymization finished!</h2>" +
-                                   QString("Total files: %1 total patients: %2").arg(files_count).arg(patients_count));
+                                   QString("Total files: %1<br>Total patients: %2").arg(files_count).arg(patients_count));
         this->dlg_->progressBar->setVisible(false);
 
         QAbstractButton* inspectBtn = this->dlg_->buttonBox->button(QDialogButtonBox::Help);

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -41,12 +40,14 @@ struct DICOMTag
 };
 
 
+#ifdef DEBUG
 void print_tag(DICOMTag tag)
 {
-#ifdef DEBUG
     qDebug().noquote() << tag.toString() << "[" << tag.vr << "]" << "{" << tag.length << "}";
-#endif
 }
+#else
+void print_tag(DICOMTag) {}
+#endif
 
 // Function to manually assemble a 16-bit integer from little-endian bytes
 static quint16 read_uint16(QDataStream& dicom_stream)

@@ -22,7 +22,7 @@ QString run_ctp(QObject* caller, const QStringList& args)
 {
     QDir appdir{QCoreApplication::applicationDirPath().append("/ctp")};
 
-    qDebug().noquote() << "Running java in" << appdir<< "with cmd:" << args;
+    qDebug().noquote() << "Running java in" << appdir<< "with cmd:" << args.join(" ");
     QProcess *proc = new QProcess(caller);
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
