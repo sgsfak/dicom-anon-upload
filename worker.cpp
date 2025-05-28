@@ -175,6 +175,12 @@ void Worker::hash_clinical(const QString& inFile, const QString& outFile) const
     csv::CSVRow row;
     std::string pp = "[" + this->site_id_ + "]";
 
+    // Get the column names and write them as first row:
+    std::vector<std::string> cols = reader.get_col_names();
+    if (!cols.empty()) {
+        writer << cols;
+    }
+
     while (reader.read_row(row)) {
         std::vector<std::string> out_row;
         for (auto f: row) {
