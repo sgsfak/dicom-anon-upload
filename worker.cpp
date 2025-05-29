@@ -21,6 +21,7 @@
 #include <QCryptographicHash>
 #include <QRandomGenerator>
 #include <QPair>
+#include <QUuid>
 
 
 Worker::Worker(const QString &filePath,
@@ -71,13 +72,27 @@ void Worker::anonymize() {
     }
 
 
-    QString siteId = QString::fromUtf8(this->site_id_);
+    // QString siteId = QString::fromUtf8(this->site_id_);
+
+    // To make more difficult the identification of the original provider given
+    // the contents of the anonymized DICOM files, we hash the "site id" and add
+    // its hex digest as the "provider id" in the result DICOM images. We are using
+    // SHA-256 which produces hex string of 32 x 2 = 64 bytes, so it's ok to add it
+    // on any tag of "LO" (Long String) value representation (VR) that is at most 64
+    // characters/bytes according to DICOM :
+    // https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html#:~:text=LO
+    //
+    QByteArray hexHash = QCryptographicHash::hash(this->site_id_, QCryptographicHash::Sha256).toHex();
+    QString providerId = QString::fromLatin1(hexHash);
+
+    QString pepper = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     QStringList args;
     args << "-jar" << "DAT.jar"
         << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
         << "-da" << "anon.script"
-        << "-pSITEID" << siteId
+        << "-pPROVIDERID" << providerId
+        << "-pSECRET_KEY" << pepper
         << "-in" << inputFolder.canonicalPath()
         << "-out" << outFolder;
 
@@ -175,7 +190,9 @@ void Worker::hash_clinical(const QString& inFile, const QString& outFile) const
     csv::CSVRow row;
     std::string pp = "[" + this->site_id_ + "]";
 
-    // Get the column names and write them as first row:
+    // Get the column names in the "header row" and write them as first row
+    // Note that we assume that we have a Header row!! If not, then
+    // the first input row will be ignored and we will not map its Patient ID!!
     std::vector<std::string> cols = reader.get_col_names();
     if (!cols.empty()) {
         writer << cols;
