@@ -143,7 +143,7 @@ QByteArray dcm::get_patient_id(QFile& dcm_file)
 
     // fprintf(stderr, "Parsing file %s\n", file_name);
     // Open the DICOM file in binary mode
-    if (!dcm_file.open(QIODeviceBase::ReadOnly)) {
+    if (!dcm_file.open(QIODevice::ReadOnly)) {
         throw dcm::ParseException("Failed to open file");
     }
     QDataStream dicom_stream(&dcm_file);

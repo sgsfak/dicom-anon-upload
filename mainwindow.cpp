@@ -330,7 +330,7 @@ void MainWindow::anonymize(const QString &filePath, const QString& patId,
         this->dlg_->label->setText("<h2>Error!!</h2>" + error);
         this->dlg_->progressBar->setVisible(false);
     });
-    connect(worker, &Worker::finishedAnon, this, [this](qsizetype files_count, qsizetype patients_count, qsizetype input_files_count) {
+    connect(worker, &Worker::finishedAnon, this, [this](qint64 files_count, qint64 patients_count, qint64 input_files_count) {
         this->dlg_->label->setText("<h2>Anonymization finished!</h2>" +
                                    QString("Total input files: %1<br>"
                                            "Total output files: %2<br>"

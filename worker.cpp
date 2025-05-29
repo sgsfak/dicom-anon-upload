@@ -108,7 +108,7 @@ void Worker::anonymize() {
     // characters/bytes according to DICOM :
     // https://dicom.nema.org/dicom/2013/output/chtml/part05/sect_6.2.html#:~:text=LO
     //
-    QByteArray hexHash = QCryptographicHash::hash(this->site_id_, QCryptographicHash::Sha256).toHex();
+    QByteArray hexHash = QCryptographicHash::hash(this->site_id_.c_str(), QCryptographicHash::Sha256).toHex();
     QString providerId = QString::fromLatin1(hexHash);
 
     QString pepper = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -155,8 +155,8 @@ void Worker::anonymize() {
     //     cnt += 1;
     // }
     auto pids_dcms = ::dcms_pids(outFolder);
-    qsizetype pids_count = pids_dcms.count();
-    qsizetype files_count = 0;
+    qint64 pids_count = pids_dcms.count();
+    qint64 files_count = 0;
     for(const auto & v: qAsConst(pids_dcms)) {
         files_count += v.count();
     }
@@ -164,7 +164,7 @@ void Worker::anonymize() {
     qDebug().noquote() << "output folder contains" << files_count << "anon. DICOM files";
 
     auto input_pids_dcms = ::dcms_pids(this->filePath_);
-    qsizetype input_files_count = 0;
+    qint64 input_files_count = 0;
     for(const auto & v: qAsConst(input_pids_dcms)) {
         input_files_count += v.count();
     }
