@@ -27,11 +27,11 @@ struct DICOMTag
 {
     quint16 group;
     quint16 element;
-    char vr[3];
     quint32 length;
+    char vr[4];
 
     DICOMTag(): group(0), element(0), length(UNDEFINED_LENGTH) {
-        memset(this->vr, 0, 3);
+        memset(this->vr, 0, 4);
     }
 
     QString toString() {
@@ -135,6 +135,8 @@ static quint32 read_group_0002_length(QDataStream& dicom_stream)
     quint32 header_length = read_uint32(dicom_stream);
     return header_length;
 }
+
+dcm::ParseException::~ParseException() {}
 
 QByteArray dcm::get_patient_id(QFile& dcm_file)
 {

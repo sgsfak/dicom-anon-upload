@@ -24,6 +24,32 @@
 #include <QUuid>
 
 
+/* It reads recursively any file in the given dicomFolder, tries to parse
+ * each file found, and returns a hash map from PatientIDs to the list of DICOM file names
+ * that contain it.
+ */
+static QHash<QString, QList<QString>> dcms_pids(const QString& dicomFolder)
+{
+
+    QHash<QString, QList<QString>> dcm_pids_found;
+
+    QDirIterator it(dicomFolder, QStringList(), QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+
+        QFile f {it.next()};
+        try {
+            auto patient_id = dcm::get_patient_id(f);
+            dcm_pids_found[patient_id].append(f.fileName());
+            // qDebug().noquote() << "File" << f.fileName() << ", Patient ID=" << patient_id.constData();
+        }
+        catch(const dcm::ParseException&) {
+
+            // qDebug().noquote() << "DICOM ParseException for file" << f.fileName() << ":" << e.reason();
+        }
+    }
+    return dcm_pids_found;
+}
+
 Worker::Worker(const QString &filePath,
                const QString& site_id, const QString& pid_prefix):
 
@@ -110,25 +136,41 @@ void Worker::anonymize() {
         return;
 
     }
-    QSet<std::string> pids;
-    QDirIterator it(outFolder, QStringList(), QDir::Files, QDirIterator::Subdirectories);
-    qsizetype cnt = 0;
-    while (it.hasNext()) {
+    qDebug().noquote() << "CTP process finished!";
+    // QSet<std::string> pids;
+    // QDirIterator it(outFolder, QStringList(), QDir::Files, QDirIterator::Subdirectories);
+    // qsizetype cnt = 0;
+    // while (it.hasNext()) {
 
-        QFile f {it.next()};
-        try {
-            auto patient_id = dcm::get_patient_id(f);
-            pids.insert(patient_id.constData());
-            // qDebug().noquote() << "File" << f.fileName() << ", Patient ID=" << patient_id.constData();
-        }
-        catch(const dcm::ParseException& e) {
+    //     QFile f {it.next()};
+    //     try {
+    //         auto patient_id = dcm::get_patient_id(f);
+    //         pids.insert(patient_id.constData());
+    //         // qDebug().noquote() << "File" << f.fileName() << ", Patient ID=" << patient_id.constData();
+    //     }
+    //     catch(const dcm::ParseException& e) {
 
-            qDebug().noquote() << "DICOM ParseException for file" << f.fileName() << ":" << e.reason();
-        }
-        cnt += 1;
+    //         qDebug().noquote() << "DICOM ParseException for file" << f.fileName() << ":" << e.reason();
+    //     }
+    //     cnt += 1;
+    // }
+    auto pids_dcms = ::dcms_pids(outFolder);
+    qsizetype pids_count = pids_dcms.count();
+    qsizetype files_count = 0;
+    for(const auto & v: qAsConst(pids_dcms)) {
+        files_count += v.count();
     }
-    qDebug().noquote() << cnt << "files read, output DICOM patients:" << pids.count();
-    emit finishedAnon(cnt, pids.count());
+
+    qDebug().noquote() << "output folder contains" << files_count << "anon. DICOM files";
+
+    auto input_pids_dcms = ::dcms_pids(this->filePath_);
+    qsizetype input_files_count = 0;
+    for(const auto & v: qAsConst(input_pids_dcms)) {
+        input_files_count += v.count();
+    }
+
+    qDebug().noquote() << files_count << " output files read, output DICOM patients:" << pids_count;
+    emit finishedAnon(files_count, pids_count, input_files_count);
 }
 
 
