@@ -82,22 +82,6 @@ void Worker::anonymize() {
     QString outFolder = this->temp_anon_folder();
     QDir outDir{outFolder};
 
-    QStringList csvFilters;
-    csvFilters << "*.csv";
-    QFileInfoList csvList = inputFolder.entryInfoList(csvFilters);
-    if (!csvList.empty()) {
-        QFileInfo csvFile = csvList[0];
-        QString fileName = csvFile.fileName();
-
-        try {
-            this->hash_clinical(csvFile.absoluteFilePath(), outDir.filePath(fileName));
-        }
-        catch (const QException& e) {
-            emit error(QString("Error: %1").arg(e.what()));
-        }
-    }
-
-
     // QString siteId = QString::fromUtf8(this->site_id_);
 
     // To make more difficult the identification of the original provider given
@@ -112,6 +96,22 @@ void Worker::anonymize() {
     QString providerId = QString::fromLatin1(hexHash);
 
     QString pepper = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    QStringList csvFilters;
+    csvFilters << "*.csv";
+    QFileInfoList csvList = inputFolder.entryInfoList(csvFilters);
+    if (!csvList.empty()) {
+        QFileInfo csvFile = csvList[0];
+        QString fileName = csvFile.fileName();
+
+        try {
+            this->hash_clinical(csvFile.absoluteFilePath(), outDir.filePath(fileName), pepper);
+        }
+        catch (const QException& e) {
+            emit error(QString("Error: %1").arg(e.what()));
+        }
+    }
+
 
     QStringList args;
     args << "-jar" << "DAT.jar"
@@ -213,7 +213,7 @@ InvalidFileException::InvalidFileException(const QString& filename) {
     this->what_ += filename.toStdString();
 }
 
-void Worker::hash_clinical(const QString& inFile, const QString& outFile) const
+void Worker::hash_clinical(const QString& inFile, const QString& outFile, const QString& secret_key) const
 {
     // qDebug() << "I am reading from"<<inFile << "and write to" << outFile;
 
@@ -230,7 +230,7 @@ void Worker::hash_clinical(const QString& inFile, const QString& outFile) const
 
     auto writer = csv::make_csv_writer(ostrm);
     csv::CSVRow row;
-    std::string pp = "[" + this->site_id_ + "]";
+    std::string pp = "[" + secret_key.toStdString() + "]";
 
     // Get the column names in the "header row" and write them as first row
     // Note that we assume that we have a Header row!! If not, then

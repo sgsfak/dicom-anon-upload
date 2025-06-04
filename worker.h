@@ -33,7 +33,7 @@ public slots:
 
 private:
     std::string hash_pid(const char* patient_id) const;
-    void hash_clinical(const QString& csvInFilePath, const QString& csvOutFilePath) const;
+    void hash_clinical(const QString& csvInFilePath, const QString& csvOutFilePath, const QString& secret_key) const;
 
 signals:
     void error(const QString& error);
