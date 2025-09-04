@@ -219,7 +219,7 @@
  <e en="T" n="FrameDisplaySeq" t="00089458">@remove()</e>
  <e en="T" n="RecommendedDisplayFrameRateInFloat" t="00089459">@remove()</e>
  <e en="T" n="SkipFrameRangeFlag" t="00089460">@remove()</e>
- <e en="T" n="PatientName" t="00100010">@param(EUCAIM-)@hashptid(@SECRET_KEY,this)@param(^Anonymous)</e>
+ <e en="T" n="PatientName" t="00100010">@param(EUCAIM-)@hashptid(@SECRET_KEY,PatientID)@param(^Anonymous)</e>
  <e en="T" n="PatientID" t="00100020">@param(EUCAIM-)@hashptid(@SECRET_KEY,this)</e>
  <e en="T" n="IssuerOfPatientID" t="00100021">@remove()</e>
  <e en="T" n="TypeOfPatientID" t="00100022">@keep()</e>
@@ -302,8 +302,8 @@
  <e en="T" n="ClinicalTrialSiteName" t="00120031">@empty()</e>
  <e en="T" n="ClinicalTrialSubjectID" t="00120040">@empty()</e>
  <e en="T" n="ClinicalTrialSubjectReadingID" t="00120042">@empty()</e>
- <e en="T" n="ClinicalTrialTimePointID" t="00120050">@keep</e>
- <e en="T" n="ClinicalTrialTimePointDescription" t="00120051">@keep</e>
+ <e en="T" n="ClinicalTrialTimePointID" t="00120050">@keep()</e>
+ <e en="T" n="ClinicalTrialTimePointDescription" t="00120051">@keep()</e>
  <e en="T" n="LongitudinalTemporalOffsetFromEvent" t="00120052">@keep()</e>
  <e en="T" n="LongitudinalTemporalEventType" t="00120053">@keep()</e>
  <e en="T" n="CoordinatingCenterName" t="00120060">@empty()</e>
@@ -632,7 +632,7 @@
  <e en="T" n="InterventionDrugStopTime" t="00180027">@keep()</e>
  <e en="T" n="InterventionDrugDose" t="00180028">@keep()</e>
  <e en="T" n="InterventionDrugCodeSeq" t="00180029">@keep()</e>
- <e en="T" n="AdditionalDrugSeq" t="0018002A">@keep</e>
+ <e en="T" n="AdditionalDrugSeq" t="0018002A">@keep()</e>
  <e en="T" n="RadionuclideRetired" t="00180030">@remove()</e>
  <e en="T" n="Radiopharmaceutical" t="00180031">@keep()</e>
  <e en="T" n="EnergyWindowCenterlineRetired" t="00180032">@remove()</e>
@@ -649,11 +649,11 @@
  <e en="T" n="SliceThickness" t="00180050">@keep()</e>
  <e en="T" n="KVP" t="00180060">@keep()</e>
  <e en="T" n="CountsAccumulated" t="00180070">@keep()</e>
- <e en="T" n="AcquisitionTerminationCondition" t="00180071">@keep</e>
+ <e en="T" n="AcquisitionTerminationCondition" t="00180071">@keep()</e>
  <e en="T" n="EffectiveDuration" t="00180072"></e>
- <e en="T" n="AcquisitionStartCondition" t="00180073">@keep</e>
- <e en="T" n="AcquisitionStartConditionData" t="00180074">@keep</e>
- <e en="T" n="AcquisitionTerminationConditionData" t="00180075">@keep</e>
+ <e en="T" n="AcquisitionStartCondition" t="00180073">@keep()</e>
+ <e en="T" n="AcquisitionStartConditionData" t="00180074">@keep()</e>
+ <e en="T" n="AcquisitionTerminationConditionData" t="00180075">@keep()</e>
  <e en="T" n="RepetitionTime" t="00180080">@keep()</e>
  <e en="T" n="EchoTime" t="00180081">@keep()</e>
  <e en="T" n="InversionTime" t="00180082">@keep()</e>
@@ -756,7 +756,7 @@
  <e en="T" n="AngularPosition" t="00181141"></e>
  <e en="T" n="RadialPosition" t="00181142">@keep()</e>
  <e en="T" n="ScanArc" t="00181143">@keep()</e>
- <e en="T" n="AngularStep" t="00181144">@keep</e>
+ <e en="T" n="AngularStep" t="00181144">@keep()</e>
  <e en="T" n="CenterOfRotationOffset" t="00181145">@keep()</e>
  <e en="T" n="RotationOffsetRetired" t="00181146">@remove()</e>
  <e en="T" n="FieldOfViewShape" t="00181147">@keep()</e>
@@ -837,7 +837,7 @@
  <e en="T" n="DetectorPrimaryAngle" t="00181530">@keep()</e>
  <e en="T" n="DetectorSecondaryAngle" t="00181531">@keep()</e>
  <e en="T" n="ShutterShape" t="00181600">@keep()</e>
- <e en="T" n="ShutterLeftVerticalEdge" t="00181602">@keep</e>
+ <e en="T" n="ShutterLeftVerticalEdge" t="00181602">@keep()</e>
  <e en="T" n="ShutterRightVerticalEdge" t="00181604">@keep()</e>
  <e en="T" n="ShutterUpperHorizontalEdge" t="00181606">@keep()</e>
  <e en="T" n="ShutterLowerHorizontalEdge" t="00181608">@keep()</e>
@@ -1057,7 +1057,7 @@
  <e en="T" n="BaselineCorrection" t="00189067"></e>
  <e en="T" n="ParallelReductionFactorInPlane" t="00189069"></e>
  <e en="T" n="CardiacRRIntervalSpecified" t="00189070"></e>
- <e en="T" n="AcquisitionDuration" t="00189073">@keep</e>
+ <e en="T" n="AcquisitionDuration" t="00189073">@keep()</e>
  <e en="T" n="FrameAcquisitionDatetime" t="00189074"></e>
  <e en="T" n="DiffusionDirectionality" t="00189075"></e>
  <e en="T" n="DiffusionGradientDirectionSeq" t="00189076"></e>
