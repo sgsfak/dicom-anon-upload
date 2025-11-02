@@ -106,30 +106,30 @@ jobs:
           APP="EUCAIM-Anonymizer.app"
           macdeployqt "$APP"
 
-      # Bundle libzip.dylib into the .app and fix rpaths
-      - name: Bundle libzip.dylib into app (macOS)
-        if: startsWith(matrix.os, 'macos')
-        shell: bash
-        run: |
-          APP="EUCAIM-Anonymizer.app"
-          FW="$APP/Contents/Frameworks"
-          mkdir -p "$FW"
-          # Locate libzip.dylib from Homebrew (works on Intel and Apple Silicon)
-          LIBZIP=$(pkg-config --variable=libdir libzip)/libzip.dylib
-          cp "$LIBZIP" "$FW/"
-          chmod +w "$FW/libzip.dylib"
+        # # Bundle libzip.dylib into the .app and fix rpaths
+        # - name: Bundle libzip.dylib into app (macOS)
+        #   if: startsWith(matrix.os, 'macos')
+        #   shell: bash
+        #   run: |
+        #     APP="EUCAIM-Anonymizer.app"
+        #     FW="$APP/Contents/Frameworks"
+        #     mkdir -p "$FW"
+        #     # Locate libzip.dylib from Homebrew (works on Intel and Apple Silicon)
+        #     LIBZIP=$(pkg-config --variable=libdir libzip)/libzip.dylib
+        #     cp "$LIBZIP" "$FW/"
+        #     chmod +w "$FW/libzip.dylib"
 
-          # Add rpath only if it's not already present
-          if ! otool -l "$BIN" | awk '/LC_RPATH/{flag=1;next} flag && /path/{print $2; flag=0}' | grep -qx '@executable_path/../Frameworks'; then
-            install_name_tool -add_rpath '@executable_path/../Frameworks' "$BIN"
-          fi
+        #     # Add rpath only if it's not already present
+        #     if ! otool -l "$BIN" | awk '/LC_RPATH/{flag=1;next} flag && /path/{print $2; flag=0}' | grep -qx '@executable_path/../Frameworks'; then
+        #       install_name_tool -add_rpath '@executable_path/../Frameworks' "$BIN"
+        #     fi
 
-          ## Make the app look for libs in @rpath and add Frameworks to rpath
-          #install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/EUCAIM-Anonymizer"
-          ## Repoint libzip's install name to @rpath so loader finds it in Frameworks
-          #install_name_tool -id "@rpath/libzip.dylib" "$FW/libzip.dylib"
+        #     ## Make the app look for libs in @rpath and add Frameworks to rpath
+        #     #install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/EUCAIM-Anonymizer"
+        #     ## Repoint libzip's install name to @rpath so loader finds it in Frameworks
+        #     #install_name_tool -id "@rpath/libzip.dylib" "$FW/libzip.dylib"
 
-          # If libzip depends on zlib/bzip2, macOS uses system libz/libbz2 (no bundling needed)
+        #     # If libzip depends on zlib/bzip2, macOS uses system libz/libbz2 (no bundling needed)
 
       - name: Create DMG
         if: startsWith(matrix.os, 'macos')
