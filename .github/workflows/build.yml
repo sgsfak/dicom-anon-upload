@@ -8,7 +8,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            qt-arch: win64_msvc2022_64
+            qt-arch: win64_msvc2019_64
             shell: cmd
           - os: macos-latest
             qt-arch: clang_64
