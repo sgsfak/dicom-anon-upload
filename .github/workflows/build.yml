@@ -10,7 +10,7 @@ jobs:
           - os: windows-latest
             qt-arch: win64_msvc2019_64
             shell: cmd
-          - os: macos-13
+          - os: macos-15-intel
             qt-arch: clang_64
             shell: bash
     runs-on: ${{ matrix.os }}

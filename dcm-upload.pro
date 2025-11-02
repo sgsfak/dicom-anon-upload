@@ -22,6 +22,13 @@ TARGET = "EUCAIM-Anonymizer"
 CONFIG += link_pkgconfig
 PKGCONFIG += libzip
 
+# Tell qmake to copy the entire ctp folder next to the binary
+ctp.files = $$PWD/ctp
+# On Windows: copy into release folder (same as exe)
+win32:ctp.path = $$OUT_PWD/release
+# On macOS: copy inside the .app bundle's folder
+macx:ctp.path = $$OUT_PWD/$${TARGET}.app/Contents/MacOS
+INSTALLS += ctp
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
