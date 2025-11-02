@@ -22,9 +22,6 @@ TARGET = "EUCAIM-Anonymizer"
 CONFIG += link_pkgconfig
 PKGCONFIG += libzip
 
-# Ensure rpath for macOS app bundle
-macx: QMAKE_LFLAGS += -Wl,-rpath,@executable_path/../Frameworks
-
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
