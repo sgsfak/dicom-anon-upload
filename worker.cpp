@@ -99,10 +99,15 @@ void Worker::anonymize() {
 
     QStringList csvFilters;
     csvFilters << "*.csv";
-    QFileInfoList csvList = inputFolder.entryInfoList(csvFilters);
-    if (!csvList.empty()) {
-        QFileInfo csvFile = csvList[0];
+    const QFileInfoList csvList = inputFolder.entryInfoList(csvFilters);
+    for (const auto& csvFile: csvList) {
+
+        // QFileInfo csvFile = csvList[0];
         QString fileName = csvFile.fileName();
+        // Ignore any CSVs starting with _
+        if (fileName.startsWith("_")) {
+            continue;
+        }
 
         try {
             this->hash_clinical(csvFile.absoluteFilePath(), outDir.filePath(fileName), pepper);
