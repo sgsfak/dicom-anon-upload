@@ -1,0 +1,143 @@
+name: qt-qmake-win-mac
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} build
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            qt-arch: win64_msvc2022_64
+            shell: cmd
+          - os: macos-latest
+            qt-arch: clang_64
+            shell: bash
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.5.3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.5.3
+          host: ${{ startsWith(matrix.os, 'windows') && 'windows' || 'mac' }}
+          target: desktop
+          arch: ${{ matrix.qt-arch }}
+          modules: qtbase
+          cache: true
+
+      # ---------- WINDOWS ----------
+      - name: MSVC Dev Cmd
+        if: startsWith(matrix.os, 'windows')
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install vcpkg + deps (libzip w/ zlib,bzip2)
+        if: startsWith(matrix.os, 'windows')
+        shell: powershell
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
+          $env:VCPKG_ROOT="$env:USERPROFILE\vcpkg"
+          & $env:VCPKG_ROOT\bootstrap-vcpkg.bat
+          & $env:VCPKG_ROOT\vcpkg.exe install libzip[bzip2,zlib]:x64-windows
+          echo "VCPKG_ROOT=$env:VCPKG_ROOT" >> $env:GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$env:VCPKG_ROOT\installed\x64-windows\lib\pkgconfig" >> $env:GITHUB_ENV
+          echo "$env:VCPKG_ROOT\installed\x64-windows\bin" >> $env:GITHUB_PATH
+
+      - name: Configure (qmake, Win)
+        if: startsWith(matrix.os, 'windows')
+        shell: cmd
+        run: |
+          qmake -v
+          qmake .\dcm-upload.pro -spec win32-msvc "CONFIG+=release"
+
+      - name: Build (nmake)
+        if: startsWith(matrix.os, 'windows')
+        shell: cmd
+        run: nmake
+
+      - name: Deploy (windeployqt) + copy vcpkg DLLs
+        if: startsWith(matrix.os, 'windows')
+        shell: powershell
+        run: |
+          $exe=".\release\EUCAIM-Anonymizer.exe"
+          windeployqt $exe
+
+          # Copy runtime DLLs from vcpkg (libzip + zlib + bzip2)
+          Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\zip*.dll" .\release -ErrorAction SilentlyContinue
+          Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\zlib*.dll" .\release -ErrorAction SilentlyContinue
+          Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\bz2*.dll"  .\release -ErrorAction SilentlyContinue
+          # Some ports use names like libzip.dll, zlib1.dll, bzip2.dll:
+          Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\libzip*.dll" .\release -ErrorAction SilentlyContinue
+          Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\libbz2*.dll"  .\release -ErrorAction SilentlyContinue
+
+      - name: Upload Windows artifact
+        if: startsWith(matrix.os, 'windows')
+        uses: actions/upload-artifact@v4
+        with:
+          name: EUCAIM-Anonymizer-windows
+          path: release/**
+
+      # ---------- macOS ----------
+      - name: Install Homebrew deps (libzip + pkg-config)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          brew update
+          brew install libzip pkg-config
+          # Expose pkg-config for qmake:
+          echo "PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)" >> $GITHUB_ENV
+
+      - name: Configure (qmake, macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          qmake -v
+          qmake dcm-upload.pro "CONFIG+=release"
+
+      - name: Build (make)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: make -j
+
+      - name: Deploy (macdeployqt)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          APP="EUCAIM-Anonymizer.app"
+          macdeployqt "$APP"
+
+      # Bundle libzip.dylib into the .app and fix rpaths
+      - name: Bundle libzip.dylib into app (macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          APP="EUCAIM-Anonymizer.app"
+          FW="$APP/Contents/Frameworks"
+          mkdir -p "$FW"
+          # Locate libzip.dylib from Homebrew (works on Intel and Apple Silicon)
+          LIBZIP=$(pkg-config --variable=libdir libzip)/libzip.dylib
+          cp "$LIBZIP" "$FW/"
+          chmod +w "$FW/libzip.dylib"
+
+          # Make the app look for libs in @rpath and add Frameworks to rpath
+          install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/EUCAIM-Anonymizer"
+          # Repoint libzip's install name to @rpath so loader finds it in Frameworks
+          install_name_tool -id "@rpath/libzip.dylib" "$FW/libzip.dylib"
+
+          # If libzip depends on zlib/bzip2, macOS uses system libz/libbz2 (no bundling needed)
+
+      - name: Create DMG
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          macdeployqt "EUCAIM-Anonymizer.app" -dmg
+
+      - name: Upload macOS artifact
+        if: startsWith(matrix.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          name: EUCAIM-Anonymizer-macos
+          path: |
+            EUCAIM-Anonymizer.app/**
+            EUCAIM-Anonymizer.dmg

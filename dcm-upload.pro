@@ -19,24 +19,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 UI_DIR = $$PWD
 TARGET = "EUCAIM Anonymizer"
 
-macx {
-INCLUDEPATH += "/usr/local/Cellar/libzip/1.10.1/include"
-QMAKE_LFLAGS += "-L/usr/local/Cellar/libzip/1.10.1/lib -lzip"
-}
+# Use pkg-config to pull libzip + transitive libs (zlib, bzip2)
+CONFIG += link_pkgconfig
+PKGCONFIG += libzip
 
-#win32 {
-#INCLUDEPATH += "C:\Users\User\vcpkg\packages\libzip_x64-windows-static\include"
-#INCLUDEPATH += "C:\Users\User\vcpkg\packages\zlib_x64-windows-static\include"
-#INCLUDEPATH += "C:\Users\User\vcpkg\packages\bzip2_x64-windows-static\include"
-#LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows-static\lib -LC:\Users\User\vcpkg\packages\zlib_x64-windows-static\lib -LC:\Users\User\vcpkg\packages\bzip2_x64-windows-static\lib -lbz2 -lzlib -lzip
-#}
+# Ensure rpath for macOS app bundle
+macx: QMAKE_LFLAGS += -Wl,-rpath,@executable_path/../Frameworks
 
-win32 {
-INCLUDEPATH += "C:\Users\User\vcpkg\packages\libzip_x64-windows\include"
-INCLUDEPATH += "C:\Users\User\vcpkg\packages\zlib_x64-windows\include"
-INCLUDEPATH += "C:\Users\User\vcpkg\packages\bzip2_x64-windows\include"
-#LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows\lib -LC:\Users\User\vcpkg\packages\zlib_x64-windows\lib -LC:\Users\User\vcpkg\packages\bzip2_x64-windows\lib -lbz2 -lzlib -lzip
-}
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
