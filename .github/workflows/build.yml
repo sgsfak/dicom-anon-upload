@@ -24,7 +24,6 @@ jobs:
           host: ${{ startsWith(matrix.os, 'windows') && 'windows' || 'mac' }}
           target: desktop
           arch: ${{ matrix.qt-arch }}
-          modules: qtbase
           cache: true
 
       # ---------- WINDOWS ----------
