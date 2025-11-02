@@ -119,10 +119,15 @@ jobs:
           cp "$LIBZIP" "$FW/"
           chmod +w "$FW/libzip.dylib"
 
-          # Make the app look for libs in @rpath and add Frameworks to rpath
-          install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/EUCAIM-Anonymizer"
-          # Repoint libzip's install name to @rpath so loader finds it in Frameworks
-          install_name_tool -id "@rpath/libzip.dylib" "$FW/libzip.dylib"
+          # Add rpath only if it's not already present
+          if ! otool -l "$BIN" | awk '/LC_RPATH/{flag=1;next} flag && /path/{print $2; flag=0}' | grep -qx '@executable_path/../Frameworks'; then
+            install_name_tool -add_rpath '@executable_path/../Frameworks' "$BIN"
+          fi
+
+          ## Make the app look for libs in @rpath and add Frameworks to rpath
+          #install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/EUCAIM-Anonymizer"
+          ## Repoint libzip's install name to @rpath so loader finds it in Frameworks
+          #install_name_tool -id "@rpath/libzip.dylib" "$FW/libzip.dylib"
 
           # If libzip depends on zlib/bzip2, macOS uses system libz/libbz2 (no bundling needed)
 
