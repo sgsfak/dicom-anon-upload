@@ -3,11 +3,23 @@
 #include<QByteArray>
 #include<QException>
 
+class QDebug;
+
+
 class QFile;
 
 namespace dcm {
 
-QByteArray get_patient_id(QFile& dcm_file);
+struct DcmFileInfo {
+    QString patient_id;
+    QString study_uid;
+    QString series_uid;
+    QString series_description;
+};
+
+QDebug &operator<<(QDebug &, const DcmFileInfo& f);
+
+DcmFileInfo get_file_info(QFile& dcm_file);
 
 class ParseException : public QException
 {

@@ -21,6 +21,15 @@
 #define PRINT_ERR(...)
 #endif
 
+namespace dcm {
+QDebug &operator<<(QDebug & q, const DcmFileInfo& f)
+{
+    QString a = QString("('%1', '%2', '%3')").arg(f.patient_id, f.study_uid, f.series_uid);
+    q << a;
+    return q;
+}
+}
+
 
 // DICOM Tag structure
 struct DICOMTag
@@ -138,7 +147,8 @@ static quint32 read_group_0002_length(QDataStream& dicom_stream)
 
 dcm::ParseException::~ParseException() {}
 
-QByteArray dcm::get_patient_id(QFile& dcm_file)
+
+dcm::DcmFileInfo dcm::get_file_info(QFile& dcm_file)
 {
 
     // fprintf(stderr, "Parsing file %s\n", file_name);
@@ -216,12 +226,15 @@ QByteArray dcm::get_patient_id(QFile& dcm_file)
         }
     }
 
-    // 3. Read the main DICOM Tag Set to locate the patient id:
+    // 3. Read the main DICOM Tag Set to locate the patient id and other tags:
 
     dcm_file.seek(dicom_set_start);
 
     if (!is_little_endian)
         dicom_stream.setByteOrder(QDataStream::BigEndian);
+
+    dcm::DcmFileInfo info;
+    int tags_count = 4;
 
     while (1) {
 
@@ -234,15 +247,28 @@ QByteArray dcm::get_patient_id(QFile& dcm_file)
         if (tag.group == 0x7FE0 && tag.element == 0x0010) break;
 
         buffer = dcm_file.read(tag.length);
-        buffer.append('\0');
-        PRINT_ERR("\tValue: [%s]\n", buffer.constData());
+        // buffer.append('\0');
         if (tag.group == 0x0010 && tag.element == 0x0020) {
-            // We found the Patient ID! Remove the last space if it's there
-            // to make sure that the length is even, and return it:
-            if (buffer.endsWith(' '))
-                buffer[tag.length-1] = '\0';
-            return buffer;
+            PRINT_ERR("\Patient ID=[%s]\n", buffer.constData());
+            // We found the Patient ID:
+            info.patient_id = QString(buffer).trimmed();
+            if (--tags_count == 0) break;
+        }
+        else if (tag.group == 0x0020 && tag.element == 0x000D) {
+            // We found the Study Instance UID:
+            info.study_uid = QString(buffer).trimmed();
+            if (--tags_count == 0) break;
+        }
+        else if (tag.group == 0x0020 && tag.element == 0x000E) {
+            // We found the Series Instance UID:
+            info.series_uid = QString(buffer).trimmed();
+            if (--tags_count == 0) break;
+        }
+        else if (tag.group == 0x0008 && tag.element == 0x103E) {
+            // We found the Series Description:
+            info.series_description = QString(buffer);
+            if (--tags_count == 0) break;
         }
     }
-    return "";
+    return info;
 }

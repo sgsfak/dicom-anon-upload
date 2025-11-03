@@ -1,7 +1,7 @@
 <script>
  <p t="PROVIDERID"></p>
  <p t="SECRET_KEY"></p>
- <p t="UIDROOT">2.25.27824248002006689926663032394498434222</p>
+ <p t="UIDROOT">1.3.6.1.4.1.58108.2023</p>
  <e en="T" n="LengthToEndRetired" t="00080001">@remove()</e>
  <e en="T" n="SpecificCharacterSet" t="00080005">@keep()</e>
  <e en="T" n="LanguageCodeSeq" t="00080006">@remove()</e>

@@ -22,7 +22,11 @@
 #include <QRandomGenerator>
 #include <QPair>
 #include <QUuid>
+#include <iostream>
 
+namespace {
+const QString UIDROOT="1.3.6.1.4.1.58108.2023";
+}
 
 /* It reads recursively any file in the given dicomFolder, tries to parse
  * each file found, and returns a hash map from PatientIDs to the list of DICOM file names
@@ -38,9 +42,10 @@ static QHash<QString, QList<QString>> dcms_pids(const QString& dicomFolder)
 
         QFile f {it.next()};
         try {
-            auto patient_id = dcm::get_patient_id(f);
-            dcm_pids_found[patient_id].append(f.fileName());
-            // qDebug().noquote() << "File" << f.fileName() << ", Patient ID=" << patient_id.constData();
+            auto dcm_info = dcm::get_file_info(f);
+            // qDebug().noquote() << dcm_info.patient_id << dcm_info.study_uid << dcm_info.series_uid << ;
+            qDebug().noquote() << dcm_info;
+            dcm_pids_found[dcm_info.patient_id].append(f.fileName());
         }
         catch(const dcm::ParseException&) {
 
@@ -119,12 +124,13 @@ void Worker::anonymize() {
 
     QStringList args;
     args << "-jar" << "DAT.jar"
-        << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
-        << "-da" << "anon.script"
-        << "-pPROVIDERID" << providerId
-        << "-pSECRET_KEY" << pepper
-        << "-in" << inputFolder.canonicalPath()
-        << "-out" << outFolder;
+         << "-n" << QString::number(qMin(4, QThread::idealThreadCount()))
+         << "-da" << "anon.script"
+         << "-pPROVIDERID" << providerId
+         << "-pSECRET_KEY" << pepper
+         << "-pUIDROOT" << ::UIDROOT
+         << "-in" << inputFolder.canonicalPath()
+         << "-out" << outFolder;
 
     try {
         run_ctp(this, args);
@@ -141,27 +147,10 @@ void Worker::anonymize() {
 
     }
     qDebug().noquote() << "CTP process finished!";
-    // QSet<std::string> pids;
-    // QDirIterator it(outFolder, QStringList(), QDir::Files, QDirIterator::Subdirectories);
-    // qsizetype cnt = 0;
-    // while (it.hasNext()) {
-
-    //     QFile f {it.next()};
-    //     try {
-    //         auto patient_id = dcm::get_patient_id(f);
-    //         pids.insert(patient_id.constData());
-    //         // qDebug().noquote() << "File" << f.fileName() << ", Patient ID=" << patient_id.constData();
-    //     }
-    //     catch(const dcm::ParseException& e) {
-
-    //         qDebug().noquote() << "DICOM ParseException for file" << f.fileName() << ":" << e.reason();
-    //     }
-    //     cnt += 1;
-    // }
-    auto pids_dcms = ::dcms_pids(outFolder);
+    const auto pids_dcms = ::dcms_pids(outFolder);
     qint64 pids_count = pids_dcms.count();
     qint64 files_count = 0;
-    for(const auto & v: qAsConst(pids_dcms)) {
+    for(const auto & v: pids_dcms) {
         files_count += v.count();
     }
 
