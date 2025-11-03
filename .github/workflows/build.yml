@@ -114,7 +114,7 @@ jobs:
         shell: bash
         run: |
           APP="EUCAIM-Anonymizer.app"
-          # mkdir -p "$APP/Contents/Resources/ctp"
+          mkdir -p "$APP/Contents/MacOS/ctp"
           cp -R ctp/* "$APP/Contents/MacOS/ctp/"
 
         # # Bundle libzip.dylib into the .app and fix rpaths
