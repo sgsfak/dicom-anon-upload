@@ -142,11 +142,11 @@ jobs:
 
         #     # If libzip depends on zlib/bzip2, macOS uses system libz/libbz2 (no bundling needed)
 
-      - name: Create DMG
+      - name: Build app
         if: startsWith(matrix.os, 'macos')
         shell: bash
         run: |
-          macdeployqt "EUCAIM-Anonymizer.app" -dmg
+          macdeployqt "EUCAIM-Anonymizer.app" -verbose=2
 
       - name: Upload macOS artifact
         if: startsWith(matrix.os, 'macos')
