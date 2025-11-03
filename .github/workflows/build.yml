@@ -54,6 +54,10 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         shell: cmd
         run: nmake
+      - name: Copy ctp folder (Windows)
+        shell: powershell
+        run: |
+          Copy-Item -Recurse -Force .\ctp .\release\ctp
 
       - name: Deploy (windeployqt) + copy vcpkg DLLs
         if: startsWith(matrix.os, 'windows')
@@ -105,6 +109,13 @@ jobs:
         run: |
           APP="EUCAIM-Anonymizer.app"
           macdeployqt "$APP"
+
+      - name: Copy ctp folder (macOS)
+        shell: bash
+        run: |
+          APP="EUCAIM-Anonymizer.app"
+          # mkdir -p "$APP/Contents/Resources/ctp"
+          cp -R ctp/* "$APP/Contents/MacOS/ctp/"
 
         # # Bundle libzip.dylib into the .app and fix rpaths
         # - name: Bundle libzip.dylib into app (macOS)
