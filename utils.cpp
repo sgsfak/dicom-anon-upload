@@ -2,6 +2,7 @@
 #include <QSettings>
 #include <QDir>
 #include <QProcess>
+#include <QStandardPaths>
 #include <QCoreApplication>
 #include <QDebug>
 
@@ -46,3 +47,15 @@ QString run_ctp(QObject* caller, const QStringList& args)
     }
     return output;
 }
+
+QString appDataDir()
+{
+    // Set these early in main():
+    // QCoreApplication::setOrganizationName("YourOrg");
+    // QCoreApplication::setApplicationName("YourApp");
+
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(dir);
+    return dir;
+}
+

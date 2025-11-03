@@ -53,7 +53,7 @@ static QHash<QString, QList<QString>> dcms_pids(const QString& dicomFolder)
 Worker::Worker(const QString &filePath,
                const QString& site_id, const QString& pid_prefix):
 
-    id_(QDateTime::currentDateTimeUtc().toString("yyyyMMddThhmmss")+
+    id_(QDateTime::currentDateTimeUtc().toString("yyyy-MM-ddThhmmss")+
         QString("_%1").arg(QRandomGenerator::global()->bounded(1000), 3, 10, QChar('0'))),
     filePath_(filePath),
     site_id_(site_id.toUtf8().constData()),
@@ -61,11 +61,10 @@ Worker::Worker(const QString &filePath,
 
 {
 
-    auto tempDir = QDir::temp();
-    QString sub_folfer = QString("anon_job_%1").arg(this->id_);
-    tempDir.mkdir(sub_folfer);
-    this->outFolder_ = tempDir.filePath(sub_folfer);
-
+    QDir appDir{appDataDir()};
+    QString run_folder = QString("RUNS/RUN_%1").arg(this->id_);
+    appDir.mkpath(run_folder);
+    this->outFolder_ = appDir.filePath(run_folder);
 }
 
 

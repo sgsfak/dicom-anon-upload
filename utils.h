@@ -32,5 +32,6 @@ public:
 
 
 QString run_ctp(QObject* caller, const QStringList& args);
+QString appDataDir();
 
 #endif // UTILS_H

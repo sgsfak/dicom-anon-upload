@@ -100,7 +100,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Open the history db, where we store the uploads etc:
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "main_db");
-    QString dbFile = qApp->applicationDirPath() + "/dcm_upload.sqlite";
+    QString dbFile = appDataDir() + "/dcm_upload.sqlite";
     ::qfile_create_if_needed(dbFile);
     db.setDatabaseName( dbFile );
     qDebug() << "Opening DB at" << dbFile;

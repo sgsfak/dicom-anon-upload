@@ -12,6 +12,9 @@
 int main(int argc, char *argv[])
 {
 
+    QCoreApplication::setOrganizationName("CBML-FORTH-ICS");
+    QCoreApplication::setApplicationName("DICOM-Anonymizer");
+
     QApplication a(argc, argv);
     a.setWindowIcon(QIcon(":/eucaim.png"));
 
