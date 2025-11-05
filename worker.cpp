@@ -22,10 +22,9 @@
 #include <QRandomGenerator>
 #include <QPair>
 #include <QUuid>
-#include <iostream>
 
 namespace {
-const QString UIDROOT="1.3.6.1.4.1.58108.2023";
+const char* const UIDROOT="1.3.6.1.4.1.58108.2023";
 }
 
 /* It reads recursively any file in the given dicomFolder, tries to parse
@@ -43,13 +42,12 @@ static QHash<QString, QList<QString>> dcms_pids(const QString& dicomFolder)
         QFile f {it.next()};
         try {
             auto dcm_info = dcm::get_file_info(f);
-            // qDebug().noquote() << dcm_info.patient_id << dcm_info.study_uid << dcm_info.series_uid << ;
-            qDebug().noquote() << dcm_info;
+            // if (!dcm_pids_found.contains(dcm_info.patient_id))
+            //     qDebug().noquote() << dcm_info;
             dcm_pids_found[dcm_info.patient_id].append(f.fileName());
-        }
-        catch(const dcm::ParseException&) {
-
-            // qDebug().noquote() << "DICOM ParseException for file" << f.fileName() << ":" << e.reason();
+        } catch (const dcm::ParseException& e) {
+            qDebug().noquote() << "DICOM ParseException for file"
+                               << f.fileName() << ":" << e.reason();
         }
     }
     return dcm_pids_found;
@@ -156,9 +154,9 @@ void Worker::anonymize() {
 
     qDebug().noquote() << "output folder contains" << files_count << "anon. DICOM files";
 
-    auto input_pids_dcms = ::dcms_pids(this->filePath_);
+    const auto input_pids_dcms = ::dcms_pids(this->filePath_);
     qint64 input_files_count = 0;
-    for(const auto & v: qAsConst(input_pids_dcms)) {
+    for(const auto & v: input_pids_dcms) {
         input_files_count += v.count();
     }
 

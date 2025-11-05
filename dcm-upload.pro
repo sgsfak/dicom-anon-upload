@@ -4,6 +4,7 @@ VERSION = 0.14.1
 DEFINES += APP_VERSION=$$VERSION
 
 QT       += core gui network sql
+QT       += core5compat
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
