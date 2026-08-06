@@ -44,9 +44,7 @@ SOURCES += \
     mainwindow.cpp \
     upload_worker.cpp \
     utils.cpp \
-    worker.cpp \
-    xxhash/xxh_x86dispatch.c \
-    xxhash/xxhash.c
+    worker.cpp
 
 HEADERS += \
     config.h \
@@ -59,9 +57,7 @@ HEADERS += \
     utilities/bigint.hpp \
     utilities/csv.hpp \
     utils.h \
-    worker.h \
-    xxhash/xxh_x86dispatch.h \
-    xxhash/xxhash.h
+    worker.h
 
 FORMS += \
     configdialog.ui \
