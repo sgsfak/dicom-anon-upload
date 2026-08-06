@@ -13,14 +13,17 @@ jobs:
           - os: macos-15-intel
             qt-arch: clang_64
             shell: bash
+          - os: macos-15
+            qt-arch: clang_64
+            shell: bash
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt 6.5.4
+      - name: Install Qt 6.6.1
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.5.4
+          version: 6.6.1
           host: ${{ startsWith(matrix.os, 'windows') && 'windows' || 'mac' }}
           target: desktop
           modules: qt5compat
@@ -79,7 +82,7 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         uses: actions/upload-artifact@v4
         with:
-          name: EUCAIM-Anonymizer-windows
+          name: EUCAIM-Anonymizer-${{ matrix.os }}
           path: release/**
 
       # ---------- macOS ----------
@@ -153,7 +156,7 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         uses: actions/upload-artifact@v4
         with:
-          name: EUCAIM-Anonymizer-macos
+          name: EUCAIM-Anonymizer-${{ matrix.os }}
           path: |
             EUCAIM-Anonymizer.app/**
             EUCAIM-Anonymizer.dmg
