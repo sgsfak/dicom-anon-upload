@@ -1,6 +1,6 @@
 REVISION = $$system(git rev-parse --short HEAD)
 DEFINES += APP_REVISION=$$REVISION
-VERSION = 0.10.2
+VERSION = 0.13.1
 DEFINES += APP_VERSION=$$VERSION
 
 QT       += core gui network sql
@@ -8,7 +8,7 @@ QT       += core gui network sql
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
-CONFIG += console
+# CONFIG += console
 CONFIG += sdk_no_version_check
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -16,24 +16,15 @@ CONFIG += sdk_no_version_check
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 
-macx {
-INCLUDEPATH += "/usr/local/Cellar/libzip/1.9.2/include"
-QMAKE_LFLAGS += "-L/usr/local/Cellar/libzip/1.9.2/lib -lzip"
-}
+UI_DIR = $$PWD
+TARGET = "CardioCare Anonymizer"
 
-#win32 {
-#INCLUDEPATH += "C:\Users\User\vcpkg\packages\libzip_x64-windows-static\include"
-#INCLUDEPATH += "C:\Users\User\vcpkg\packages\zlib_x64-windows-static\include"
-#INCLUDEPATH += "C:\Users\User\vcpkg\packages\bzip2_x64-windows-static\include"
-#LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows-static\lib -LC:\Users\User\vcpkg\packages\zlib_x64-windows-static\lib -LC:\Users\User\vcpkg\packages\bzip2_x64-windows-static\lib -lbz2 -lzlib -lzip
-#}
+# Use pkg-config to pull libzip + transitive libs (zlib, bzip2)
+CONFIG += link_pkgconfig
+PKGCONFIG += libzip
 
-win32 {
-INCLUDEPATH += "C:\Users\User\vcpkg\packages\libzip_x64-windows\include"
-INCLUDEPATH += "C:\Users\User\vcpkg\packages\zlib_x64-windows\include"
-INCLUDEPATH += "C:\Users\User\vcpkg\packages\bzip2_x64-windows\include"
-LIBS += -LC:\Users\User\vcpkg\packages\libzip_x64-windows\lib -LC:\Users\User\vcpkg\packages\zlib_x64-windows\lib -LC:\Users\User\vcpkg\packages\bzip2_x64-windows\lib -lbz2 -lzlib -lzip
-}
+# Ensure rpath for macOS app bundle
+macx: QMAKE_LFLAGS += -Wl,-rpath,@executable_path/../Frameworks
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -47,9 +38,7 @@ SOURCES += \
     mainwindow.cpp \
     upload_worker.cpp \
     utils.cpp \
-    worker.cpp \
-    xxhash/xxh_x86dispatch.c \
-    xxhash/xxhash.c
+    worker.cpp
 
 HEADERS += \
     historyform.h \
@@ -58,9 +47,7 @@ HEADERS += \
     token_data.h \
     upload_worker.h \
     utils.h \
-    worker.h \
-    xxhash/xxh_x86dispatch.h \
-    xxhash/xxhash.h
+    worker.h
 
 FORMS += \
     historyform.ui \
@@ -82,9 +69,9 @@ RESOURCES += \
 RC_ICONS = cardiocare-logo.ico
 ICON = cardiocare-logo.icns
 
-win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibcrypto_static
+#win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibcrypto_static
 
-win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibssl_static
+#win32: LIBS += -L$$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k/ -llibssl_static
 
 INCLUDEPATH += $$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k
 DEPENDPATH += $$PWD/../build-dcm-upload-Desktop_Qt_5_15_2_MSVC2015_64bit-Release/release/openssl_1_1_1k

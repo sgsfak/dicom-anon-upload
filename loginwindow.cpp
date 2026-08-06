@@ -9,9 +9,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonDocument>
-#include <algorithm>
 
-#include "mainwindow.h"
 
 LoginWindow::LoginWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -69,8 +67,8 @@ void LoginWindow::do_login(const QString& username, const QString& passwd)
         this->progress_->setValue(0);
         this->progress_->setMinimumDuration(1000);
 
-        // connect(qnam, SIGNAL(finished(QNetworkReply*)),this, SLOT(on_login_finished(QNetworkReply*)));
-        connect(qnam, &QNetworkAccessManager::finished, this, &LoginWindow::on_login_finished);
+        connect(qnam, SIGNAL(finished(QNetworkReply*)),this, SLOT(on_login_finished(QNetworkReply*)));
+        // connect(qnam, &QNetworkAccessManager::finished, this, &LoginWindow::on_login_finished);
 
 
         qnam->post(request,
@@ -178,7 +176,7 @@ void LoginWindow::on_userinfo_finished(QNetworkReply* reply)
     this->user_.name = json.value("name").toString();
 
     QJsonArray json_array = json.value("groups").toArray();
-    for(QJsonValue v: json_array) {
+    for(const QJsonValue& v: std::as_const(json_array)) {
         this->user_.groups.push_back(v.toString());
     }
 
