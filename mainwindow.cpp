@@ -424,7 +424,7 @@ void MainWindow::on_action_About_triggered()
     QString text =
         "<h1>DICOM Anonymizer tool</h1>"
         "Version: " VERSION "<br>"
-        "&copy; FORTH-ICS, 2025 <br><br>"
+        "&copy; FORTH-ICS, 2026 <br><br>"
         "This tool uses the <a href='" CTP_URL "'>RSNA CTP anonymizer</a> and it is built "
         "with Qt under the <a href='https://www.qt.io/licensing/open-source-lgpl-obligations'>LGPLv3</a> license.";
 

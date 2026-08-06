@@ -44,7 +44,7 @@
       <bool>true</bool>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -54,20 +54,20 @@
       <string>## EUCAIM DICOM Anonymizer</string>
      </property>
      <property name="textFormat">
-      <enum>Qt::MarkdownText</enum>
+      <enum>Qt::TextFormat::MarkdownText</enum>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Open</set>
+      <set>QDialogButtonBox::StandardButton::Open</set>
      </property>
      <property name="centerButtons">
       <bool>true</bool>
@@ -77,10 +77,10 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Developed by FORTH-ICS, © 2025</string>
+      <string>Developed by FORTH-ICS, © 2026</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
